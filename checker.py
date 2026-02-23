@@ -7,7 +7,7 @@ import re
 from dataclasses import dataclass, field
 from rules import (
     FORBIDDEN_WORDS, MAGIC_PHRASES, RISKY_PATTERNS,
-    FORBIDDEN_CTA, SCORING, THRESHOLDS,
+    FORBIDDEN_CTA, SCORING, THRESHOLDS, INFORMATIONAL_KEYWORDS,
 )
 
 
@@ -60,8 +60,14 @@ def check_forbidden_words(text: str) -> list[CheckItem]:
     return items
 
 
+def is_informational_message(text: str) -> tuple[bool, list[str]]:
+    """본문이 순수 정보성 메시지인지 판단"""
+    found = [kw for kw in INFORMATIONAL_KEYWORDS if kw in text]
+    return bool(found), found
+
+
 def check_magic_phrases(text: str) -> tuple[list[CheckItem], list[str]]:
-    """매직 문구(수신자 액션 고정값) 검사"""
+    """매직 문구(수신자 액션 고정값) 검사 — 정보성 메시지는 감점 완화"""
     found = []
     for mp in MAGIC_PHRASES:
         if mp["phrase"] in text:
@@ -69,13 +75,25 @@ def check_magic_phrases(text: str) -> tuple[list[CheckItem], list[str]]:
 
     items = []
     if not found:
-        items.append(CheckItem(
-            category="magic",
-            severity="critical",
-            message="수신자 액션 고정값이 없음 — 반려 확률 높음",
-            deduction=SCORING["no_magic_phrase"],
-            suggestion='첫 문단에 "요청하신", "가입해주셔서", "신청해주신" 중 1개 추가',
-        ))
+        is_info, info_keywords = is_informational_message(text)
+        if is_info:
+            # 정보성 메시지: 매직 문구 없어도 감점 완화 (-30 → -10)
+            items.append(CheckItem(
+                category="magic",
+                severity="warning",
+                message=f'수신자 액션 고정값 없음 — 단, 정보성 메시지 감지({", ".join(info_keywords)})',
+                deduction=SCORING["no_magic_phrase_info"],
+                suggestion='정보성 메시지라 통과 가능성 있음. 안전하게 가려면 "안내 요청하신" 등 추가',
+            ))
+        else:
+            # 홍보성 메시지: 매직 문구 필수
+            items.append(CheckItem(
+                category="magic",
+                severity="critical",
+                message="수신자 액션 고정값이 없음 — 반려 확률 높음",
+                deduction=SCORING["no_magic_phrase"],
+                suggestion='첫 문단에 "요청하신", "가입해주셔서", "신청해주신" 중 1개 추가',
+            ))
     else:
         items.append(CheckItem(
             category="magic",

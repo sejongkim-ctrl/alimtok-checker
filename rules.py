@@ -40,6 +40,16 @@ RISKY_PATTERNS = [
     {"pattern": "선착순", "reason": "긴급성 조장"},
 ]
 
+# 정보성 키워드 — 이 키워드가 포함된 메시지는 순수 정보 전달로 판단
+# 매직 문구 없어도 통과 가능 (실제 사례: 배송 마감 안내, 가격 인상 안내)
+INFORMATIONAL_KEYWORDS = [
+    "배송", "마감", "출고", "입고",
+    "가격 인상", "가격 변경", "단가 변경",
+    "일정 안내", "일정 변경", "휴무",
+    "점검", "시스템 안내", "업데이트",
+    "필수 절차", "계약 관련",
+]
+
 # CTA 버튼 금지 워딩
 FORBIDDEN_CTA = [
     {"pattern": "혜택 받기", "replace": "자세히 보기"},
@@ -51,7 +61,8 @@ FORBIDDEN_CTA = [
 # 채점 가중치
 SCORING = {
     "forbidden_word": -25,       # 금지 워딩 1개당
-    "no_magic_phrase": -30,      # 매직 문구 0개일 때
+    "no_magic_phrase": -30,      # 매직 문구 0개일 때 (홍보성 메시지)
+    "no_magic_phrase_info": -10,  # 매직 문구 0개이지만 정보성 메시지일 때
     "no_personalization": -10,   # #{} 변수 없을 때
     "bad_cta": -15,              # CTA 버튼 부적절
     "too_long": -5,              # 500자 초과
