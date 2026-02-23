@@ -1,0 +1,66 @@
+"""
+카카오 알림톡 검수 규칙 상수
+- Slack 200건+ 검수 대화에서 도출 (반려 18건 + 승인 11건)
+- 출처: 02_전략_분석/알림톡_검수_통과_가이드라인_2026-02-23.md
+"""
+
+# 금지 워딩 — 본문에 포함되면 반려 확률 급상승
+FORBIDDEN_WORDS = {
+    "혜택": {"reason": "광고/프로모션성 판단", "replace": "안내사항"},
+    "프로모션": {"reason": "영리 목적 판단", "replace": "이벤트"},
+    "할인": {"reason": "가격 할인 = 영리 목적", "replace": None},
+    "무료": {"reason": "명백한 홍보 표현", "replace": None},
+    "구입": {"reason": "직접적 구매 유도", "replace": "이용"},
+    "기다리신": {"reason": "수신자 액션 불명확", "replace": "요청하신"},
+    "미리 구비": {"reason": "구매 유도 = 광고성", "replace": None},
+    "깜짝": {"reason": "홍보성 표현", "replace": None},
+}
+
+# 매직 문구 — 수신자 액션을 증명하는 고정값
+MAGIC_PHRASES = [
+    {"phrase": "요청하신", "desc": "수신자 액션(요청) 증명 — 성태님 발견, 즉시 승인"},
+    {"phrase": "가입하신", "desc": "서비스 계약 액션 명시"},
+    {"phrase": "가입해주셔서", "desc": "서비스 계약 액션 명시"},
+    {"phrase": "신청해주신", "desc": "수신자의 명시적 액션(신청) 근거"},
+    {"phrase": "참여해주셔서", "desc": "수신자 액션(참여) 증명"},
+    {"phrase": "처방해주셔서", "desc": "서비스 이용 이력 근거"},
+    {"phrase": "계약된 원장님 대상", "desc": "수신 사유 명확화"},
+    {"phrase": "가입되신", "desc": "서비스 계약 액션 명시"},
+]
+
+# 위험 패턴 — 직접 반려 경험은 없지만 광고성으로 판단될 수 있는 표현
+RISKY_PATTERNS = [
+    {"pattern": "지금 신청", "reason": "행동 유도성 표현"},
+    {"pattern": "바로 구매", "reason": "구매 유도"},
+    {"pattern": "서두르세요", "reason": "긴급성 조장 = 광고성"},
+    {"pattern": "특별 가격", "reason": "가격 관련 = 영리 목적"},
+    {"pattern": "공급가", "reason": "가격 할인 문맥"},
+    {"pattern": "사전 처방", "reason": "영리 목적 판단 (실제 반려 사례)"},
+    {"pattern": "한정 수량", "reason": "긴급성 조장"},
+    {"pattern": "선착순", "reason": "긴급성 조장"},
+]
+
+# CTA 버튼 금지 워딩
+FORBIDDEN_CTA = [
+    {"pattern": "혜택 받기", "replace": "자세히 보기"},
+    {"pattern": "지금 신청", "replace": "확인하기"},
+    {"pattern": "무료 체험", "replace": "안내 보기"},
+    {"pattern": "구매하기", "replace": "자세히 보기"},
+]
+
+# 채점 가중치
+SCORING = {
+    "forbidden_word": -25,       # 금지 워딩 1개당
+    "no_magic_phrase": -30,      # 매직 문구 0개일 때
+    "no_personalization": -10,   # #{} 변수 없을 때
+    "bad_cta": -15,              # CTA 버튼 부적절
+    "too_long": -5,              # 500자 초과
+    "risky_pattern": -10,        # 위험 패턴 1개당
+}
+
+# 판정 기준
+THRESHOLDS = {
+    "pass": 80,      # 80점 이상 → 승인 예상
+    "ambiguous": 50,  # 50~79점 → 애매함 (AI 분석 권장)
+    # 49점 이하 → 반려 예상
+}
