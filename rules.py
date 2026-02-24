@@ -80,7 +80,8 @@ CONTENT_ANNOUNCEMENT_WORDS = [
 # 채점 가중치
 SCORING = {
     "forbidden_word": -25,       # 금지 워딩 1개당
-    "no_magic_phrase": -30,      # 매직 문구 0개일 때 (홍보성 메시지)
+    "no_magic_phrase": -30,      # 매직 문구 0개일 때 (홍보성 메시지, 전체 발송)
+    "no_magic_phrase_targeted": -15,  # 매직 문구 0개이지만 특정 대상 발송
     "no_magic_phrase_info": -10,  # 매직 문구 0개이지만 정보성 메시지일 때
     "no_personalization": -10,   # #{} 변수 없을 때
     "bad_cta": -15,              # CTA 버튼 부적절

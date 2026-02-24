@@ -100,18 +100,29 @@ body = st.text_area(
     placeholder="검수에 넣을 알림톡 본문을 붙여넣으세요...\n\n📷 이미지로도 입력 가능 — 위 '이미지에서 텍스트 추출' 클릭",
 )
 
-cta = st.text_input(
-    "CTA 버튼명 (선택)",
-    key="cta_input",
-    placeholder="예: 자세히 보기",
-)
+col_cta, col_target = st.columns([2, 1])
+with col_cta:
+    cta = st.text_input(
+        "CTA 버튼명 (선택)",
+        key="cta_input",
+        placeholder="예: 자세히 보기",
+    )
+with col_target:
+    target_option = st.selectbox(
+        "발송 대상",
+        options=["전체 발송", "특정 대상"],
+        key="target_input",
+        help="특정 대상: 계약 완료, 특정 서비스 가입자 등 조건이 있는 경우",
+    )
+
+targeted = target_option == "특정 대상"
 
 # --- 검수 예측 실행 ---
 if st.button("검수 예측하기", type="primary", use_container_width=True):
     if not body.strip():
         st.warning("알림톡 본문을 입력해주세요.")
     else:
-        result = run_check(body.strip(), cta.strip())
+        result = run_check(body.strip(), cta.strip(), targeted=targeted)
         st.session_state["result"] = result
         st.session_state["body"] = body.strip()
         st.session_state["cta"] = cta.strip()

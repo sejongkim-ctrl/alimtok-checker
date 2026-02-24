@@ -103,8 +103,11 @@ def is_informational_message(text: str) -> tuple[bool, list[str]]:
     return bool(found), found
 
 
-def check_magic_phrases(text: str) -> tuple[list[CheckItem], list[str]]:
-    """매직 문구(수신자 액션 고정값) 검사 — 정보성 메시지는 감점 완화"""
+def check_magic_phrases(text: str, targeted: bool = False) -> tuple[list[CheckItem], list[str]]:
+    """매직 문구(수신자 액션 고정값) 검사
+    - 정보성 메시지: 감점 완화 (-30 → -10)
+    - 특정 대상 발송: 감점 완화 (-30 → -15)
+    """
     learned = load_learned_rules()
     all_phrases = MAGIC_PHRASES + learned.get("learned_magic_phrases", [])
 
@@ -125,8 +128,17 @@ def check_magic_phrases(text: str) -> tuple[list[CheckItem], list[str]]:
                 deduction=SCORING["no_magic_phrase_info"],
                 suggestion='정보성 메시지라 통과 가능성 있음. 안전하게 가려면 "안내 요청하신" 등 추가',
             ))
+        elif targeted:
+            # 특정 대상 발송: 수신자 특정이 되므로 감점 완화 (-30 → -15)
+            items.append(CheckItem(
+                category="magic",
+                severity="warning",
+                message="수신자 액션 고정값 없음 — 단, 특정 대상 발송으로 감점 완화",
+                deduction=SCORING["no_magic_phrase_targeted"],
+                suggestion='안전하게 가려면 "요청하신", "가입해주셔서" 등 매직 문구 추가 권장',
+            ))
         else:
-            # 홍보성 메시지: 매직 문구 필수
+            # 전체 발송 + 매직 문구 없음: 가장 위험
             items.append(CheckItem(
                 category="magic",
                 severity="critical",
@@ -218,11 +230,13 @@ def check_risky_patterns(text: str) -> list[CheckItem]:
     return items
 
 
-def check_announcement_patterns(text: str, has_magic: bool) -> list[CheckItem]:
-    """공지성/일괄발송 패턴 검사 — 매직 문구 없을 때만 감점
+def check_announcement_patterns(text: str, has_magic: bool, targeted: bool = False) -> list[CheckItem]:
+    """공지성/일괄발송 패턴 검사
+    - 매직 문구 있으면 스킵
+    - 특정 대상 발송이면 스킵 (일괄 발송이 아니므로)
     카카오 반려 사유: '단순 모든 가입(이용) 고객에게 일괄 발송하는 공지성 메시지'
     """
-    if has_magic:
+    if has_magic or targeted:
         return []
 
     found = [ap for ap in ANNOUNCEMENT_PATTERNS if ap["pattern"] in text]
@@ -264,9 +278,19 @@ def check_content_announcement(text: str) -> list[CheckItem]:
     return items
 
 
-def run_check(body: str, cta: str = "") -> CheckResult:
-    """전체 검수 예측 실행"""
+def run_check(body: str, cta: str = "", targeted: bool = False) -> CheckResult:
+    """전체 검수 예측 실행
+    targeted: True면 특정 대상 발송 (공지성 패턴 감점 면제, 매직 문구 감점 완화)
+    """
     result = CheckResult()
+
+    # 0. 발송 대상 표시
+    if targeted:
+        result.items.append(CheckItem(
+            category="target",
+            severity="pass",
+            message="특정 대상 발송 — 공지성 패턴 감점 면제",
+        ))
 
     # 1. 금지 워딩
     forbidden_items = check_forbidden_words(body)
@@ -274,7 +298,7 @@ def run_check(body: str, cta: str = "") -> CheckResult:
     result.forbidden_found = [item.message for item in forbidden_items]
 
     # 2. 매직 문구
-    magic_items, magic_found = check_magic_phrases(body)
+    magic_items, magic_found = check_magic_phrases(body, targeted=targeted)
     result.items.extend(magic_items)
     result.magic_found = magic_found
 
@@ -290,8 +314,8 @@ def run_check(body: str, cta: str = "") -> CheckResult:
     # 6. 위험 패턴
     result.items.extend(check_risky_patterns(body))
 
-    # 7. 공지성 패턴 (매직 문구 없을 때만 감점)
-    result.items.extend(check_announcement_patterns(body, bool(magic_found)))
+    # 7. 공지성 패턴 (매직 문구 없고 전체 발송일 때만 감점)
+    result.items.extend(check_announcement_patterns(body, bool(magic_found), targeted=targeted))
 
     # 8. 본문 공지성 문구 (매직 문구와 무관)
     result.items.extend(check_content_announcement(body))
