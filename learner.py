@@ -18,10 +18,11 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 CHANNEL_ID = "C06JA0YS64E"  # m_13_b2d_공지
 LEARNED_FILE = os.path.join(os.path.dirname(__file__), "learned_rules.json")
 
-SEARCH_KEYWORDS = ["검수", "반려", "승인", "알림톡", "친구톡", "검수요청", "검수 요청"]
-MAX_IMAGES_PER_THREAD = 5
-MAX_IMAGES_TOTAL = 15
-MAX_THREADS = 10
+SEARCH_KEYWORDS = ["검수", "반려", "승인", "알림톡", "친구톡", "검수요청", "검수 요청", "통과", "리젝"]
+LOOKBACK_HOURS = int(os.environ.get("LOOKBACK_HOURS", "25"))
+MAX_IMAGES_PER_THREAD = 3
+MAX_IMAGES_TOTAL = 25
+MAX_THREADS = 20
 
 GEMINI_PROMPT = """아래는 카카오 알림톡/친구톡 검수 관련 Slack 스레드들입니다.
 각 스레드는 검수 요청 → 반려 → 수정 → 재검수 → 승인의 전체 흐름을 담고 있습니다.
@@ -84,8 +85,10 @@ def slack_api(endpoint: str, params: dict) -> dict:
     return data
 
 
-def fetch_channel_history(hours_back: int = 25) -> list[dict]:
+def fetch_channel_history(hours_back: int = None) -> list[dict]:
     """채널 최근 메시지 가져오기"""
+    if hours_back is None:
+        hours_back = LOOKBACK_HOURS
     oldest = str(int((datetime.now(timezone.utc) - timedelta(hours=hours_back)).timestamp()))
     data = slack_api("conversations.history", {
         "channel": CHANNEL_ID,
@@ -295,16 +298,58 @@ def collect_threads() -> list[dict]:
     return threads
 
 
-def analyze_with_gemini(threads: list[dict]) -> dict:
-    """Gemini 멀티모달 분석 — 텍스트 + 이미지 동시 전송"""
+BATCH_SIZE = 5  # 배치당 스레드 수
+
+
+def _call_gemini(parts: list[dict]) -> dict:
+    """Gemini API 단일 호출 — 텍스트+이미지 → JSON 파싱"""
     empty = {"cases": [], "new_forbidden_words": {}, "new_magic_phrases": [], "new_informational_keywords": []}
-    if not threads:
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
+    payload = {
+        "contents": [{"parts": parts}],
+        "generationConfig": {"maxOutputTokens": 4096, "temperature": 0.2},
+    }
+
+    has_images = any(p.get("inline_data") for p in parts)
+    print(f"    Gemini 요청: {len(parts)}개 parts ({'텍스트+이미지' if has_images else '텍스트 전용'})")
+    resp = requests.post(url, json=payload, timeout=90)
+    data = resp.json()
+
+    # 이미지 에러 시 텍스트 전용 재시도
+    if "error" in data and has_images:
+        err_msg = data.get("error", {}).get("message", "")
+        if "image" in err_msg.lower() or "INVALID_ARGUMENT" in data.get("error", {}).get("status", ""):
+            print(f"    ⚠️ 이미지 에러 → 텍스트 전용 재시도: {err_msg[:100]}")
+            text_only_parts = [p for p in parts if "inline_data" not in p]
+            payload["contents"] = [{"parts": text_only_parts}]
+            resp = requests.post(url, json=payload, timeout=90)
+            data = resp.json()
+
+    if "error" in data:
+        print(f"    ❌ Gemini 에러: {data['error'].get('message', '')[:200]}")
         return empty
 
-    # Gemini 멀티모달 parts 구성
-    parts = []
+    try:
+        text = data["candidates"][0]["content"]["parts"][0]["text"]
+        json_match = re.search(r'```json\s*(.*?)\s*```', text, re.DOTALL)
+        if json_match:
+            return json.loads(json_match.group(1))
+        return json.loads(text)
+    except (KeyError, json.JSONDecodeError, IndexError) as e:
+        print(f"    파싱 실패: {e}")
+        if "candidates" in data:
+            try:
+                raw = data["candidates"][0]["content"]["parts"][0]["text"]
+                print(f"    응답 앞 300자: {raw[:300]}")
+            except (KeyError, IndexError):
+                pass
+        return empty
 
-    # 스레드별 텍스트 + 이미지 배치
+
+def _build_parts(threads: list[dict]) -> list[dict]:
+    """스레드 리스트 → Gemini parts 구성"""
+    parts = []
     threads_text_parts = []
     for i, thread in enumerate(threads, 1):
         thread_text = f"\n### 스레드 {i}\n"
@@ -314,12 +359,10 @@ def analyze_with_gemini(threads: list[dict]) -> dict:
             thread_text += f"\n(아래 {len(thread['images'])}개 이미지는 이 스레드에 첨부된 알림톡 스크린샷입니다)\n"
         threads_text_parts.append(thread_text)
 
-    # 프롬프트 조합
     all_threads_text = "\n".join(threads_text_parts)
     prompt_text = GEMINI_PROMPT.replace("{threads}", all_threads_text)
     parts.append({"text": prompt_text})
 
-    # 이미지 parts 추가 (스레드별 라벨 포함)
     for i, thread in enumerate(threads, 1):
         for j, img in enumerate(thread["images"], 1):
             parts.append({"text": f"[스레드 {i} - 이미지 {j}: {img['name']}]"})
@@ -329,46 +372,34 @@ def analyze_with_gemini(threads: list[dict]) -> dict:
                     "data": img["data"],
                 }
             })
+    return parts
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
-    payload = {
-        "contents": [{"parts": parts}],
-        "generationConfig": {"maxOutputTokens": 4096, "temperature": 0.2},
-    }
 
-    has_images = any(p.get("inline_data") for p in parts)
-    print(f"  Gemini 요청: {len(parts)}개 parts ({'텍스트+이미지' if has_images else '텍스트 전용'})")
-    resp = requests.post(url, json=payload, timeout=60)
-    data = resp.json()
+def analyze_with_gemini(threads: list[dict]) -> dict:
+    """Gemini 멀티모달 분석 — 배치 처리로 대량 스레드 지원"""
+    merged = {"cases": [], "new_forbidden_words": {}, "new_magic_phrases": [], "new_informational_keywords": []}
+    if not threads:
+        return merged
 
-    # 이미지 관련 에러 시 텍스트 전용으로 재시도
-    if "error" in data and has_images:
-        err_msg = data.get("error", {}).get("message", "")
-        if "image" in err_msg.lower() or "INVALID_ARGUMENT" in data.get("error", {}).get("status", ""):
-            print(f"  ⚠️ 이미지 에러 → 텍스트 전용으로 재시도: {err_msg[:100]}")
-            text_only_parts = [p for p in parts if "inline_data" not in p]
-            payload["contents"] = [{"parts": text_only_parts}]
-            resp = requests.post(url, json=payload, timeout=60)
-            data = resp.json()
+    # 배치 분할
+    batches = [threads[i:i + BATCH_SIZE] for i in range(0, len(threads), BATCH_SIZE)]
+    print(f"  총 {len(threads)}건 → {len(batches)}개 배치 ({BATCH_SIZE}건/배치)")
 
-    try:
-        text = data["candidates"][0]["content"]["parts"][0]["text"]
-        json_match = re.search(r'```json\s*(.*?)\s*```', text, re.DOTALL)
-        if json_match:
-            return json.loads(json_match.group(1))
-        return json.loads(text)
-    except (KeyError, json.JSONDecodeError, IndexError) as e:
-        print(f"Gemini 응답 파싱 실패: {e}")
-        # 디버깅용 응답 일부 출력
-        if "candidates" in data:
-            try:
-                raw = data["candidates"][0]["content"]["parts"][0]["text"]
-                print(f"응답 텍스트 (앞 500자): {raw[:500]}")
-            except (KeyError, IndexError):
-                pass
-        else:
-            print(f"원본 응답: {json.dumps(data, ensure_ascii=False)[:500]}")
-        return empty
+    for batch_idx, batch in enumerate(batches, 1):
+        print(f"\n  [배치 {batch_idx}/{len(batches)}] {len(batch)}건 스레드 분석 중...")
+        parts = _build_parts(batch)
+        result = _call_gemini(parts)
+
+        # 결과 병합
+        merged["cases"].extend(result.get("cases", []))
+        merged["new_forbidden_words"].update(result.get("new_forbidden_words", {}))
+        merged["new_magic_phrases"].extend(result.get("new_magic_phrases", []))
+        merged["new_informational_keywords"].extend(result.get("new_informational_keywords", []))
+
+        cases_count = len(result.get("cases", []))
+        print(f"    → {cases_count}건 케이스 추출")
+
+    return merged
 
 
 def update_learned_rules(analysis: dict) -> bool:
@@ -426,6 +457,7 @@ def update_learned_rules(analysis: dict) -> bool:
 def main():
     print("=" * 50)
     print(f"알림톡 검수 자동 학습 v2 ({datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')})")
+    print(f"LOOKBACK: {LOOKBACK_HOURS}시간 ({LOOKBACK_HOURS // 24}일)")
     print("=" * 50)
 
     if not SLACK_TOKEN:

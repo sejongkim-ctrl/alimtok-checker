@@ -5,6 +5,11 @@ on:
     # 매일 00:00 KST = 15:00 UTC
     - cron: "0 15 * * *"
   workflow_dispatch:
+    inputs:
+      lookback_hours:
+        description: "몇 시간 전까지 볼지 (기본 25, 30일=720)"
+        required: false
+        default: "25"
 
 permissions:
   contents: write
@@ -29,6 +34,7 @@ jobs:
         env:
           SLACK_USER_TOKEN: ${{ secrets.SLACK_USER_TOKEN }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          LOOKBACK_HOURS: ${{ github.event.inputs.lookback_hours || '25' }}
         run: python learner.py
 
       - name: Auto-commit learned rules
