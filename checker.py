@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from rules import (
     FORBIDDEN_WORDS, MAGIC_PHRASES, RISKY_PATTERNS,
     FORBIDDEN_CTA, SCORING, THRESHOLDS, INFORMATIONAL_KEYWORDS,
+    ANNOUNCEMENT_PATTERNS,
 )
 
 LEARNED_FILE = os.path.join(os.path.dirname(__file__), "learned_rules.json")
@@ -217,6 +218,29 @@ def check_risky_patterns(text: str) -> list[CheckItem]:
     return items
 
 
+def check_announcement_patterns(text: str, has_magic: bool) -> list[CheckItem]:
+    """공지성/일괄발송 패턴 검사 — 매직 문구 없을 때만 감점
+    카카오 반려 사유: '단순 모든 가입(이용) 고객에게 일괄 발송하는 공지성 메시지'
+    """
+    if has_magic:
+        return []
+
+    found = [ap for ap in ANNOUNCEMENT_PATTERNS if ap["pattern"] in text]
+    if not found:
+        return []
+
+    patterns_text = ", ".join(f'"{p["pattern"]}"' for p in found)
+    deduction = max(SCORING["announcement_pattern"] * len(found), -20)
+
+    return [CheckItem(
+        category="announcement",
+        severity="critical",
+        message=f"공지성 메시지 판단 위험 — {patterns_text} 감지",
+        deduction=deduction,
+        suggestion='수신자 액션을 첫 줄에 명시하세요: "가입해주신", "요청하신", "처방하고 계신 원장님께" 등',
+    )]
+
+
 def run_check(body: str, cta: str = "") -> CheckResult:
     """전체 검수 예측 실행"""
     result = CheckResult()
@@ -242,6 +266,9 @@ def run_check(body: str, cta: str = "") -> CheckResult:
 
     # 6. 위험 패턴
     result.items.extend(check_risky_patterns(body))
+
+    # 7. 공지성 패턴 (매직 문구 없을 때만 감점)
+    result.items.extend(check_announcement_patterns(body, bool(magic_found)))
 
     # 점수 계산
     for item in result.items:

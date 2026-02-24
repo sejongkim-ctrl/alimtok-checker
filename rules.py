@@ -58,6 +58,16 @@ FORBIDDEN_CTA = [
     {"pattern": "구매하기", "replace": "자세히 보기"},
 ]
 
+# 공지성 메시지 패턴 — 매직 문구 없이 감지되면 "일괄 발송 공지"로 판단
+# 실제 반려 사유: "단순 모든 가입(이용) 고객에게 일괄 발송하는 공지성 메시지"
+ANNOUNCEMENT_PATTERNS = [
+    {"pattern": "예정입니다", "reason": "미래 변경사항 일괄 안내"},
+    {"pattern": "운영진입니다", "reason": "일괄 공지 형식 (발신자 = 운영진)"},
+    {"pattern": "운영진 드림", "reason": "일괄 공지 형식 (발신자 = 운영진)"},
+    {"pattern": "팀 드림", "reason": "일괄 공지 형식 (발신자 = 팀)"},
+    {"pattern": "안내드립니다", "reason": "일방적 안내 (수신자 액션 없이 발신)"},
+]
+
 # 채점 가중치
 SCORING = {
     "forbidden_word": -25,       # 금지 워딩 1개당
@@ -67,6 +77,7 @@ SCORING = {
     "bad_cta": -15,              # CTA 버튼 부적절
     "too_long": -5,              # 500자 초과
     "risky_pattern": -10,        # 위험 패턴 1개당
+    "announcement_pattern": -10, # 공지성 패턴 1개당 (최대 -20, 매직 문구 없을 때만)
 }
 
 # 판정 기준
