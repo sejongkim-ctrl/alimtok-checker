@@ -2,13 +2,33 @@
 규칙 기반 알림톡 검수 예측 엔진
 - API 호출 없이 패턴 매칭으로 승인/반려 예측
 - 100점 만점 채점 시스템
+- 정적 규칙(rules.py) + 학습 규칙(learned_rules.json) 이중 구조
 """
+import json
+import os
 import re
 from dataclasses import dataclass, field
 from rules import (
     FORBIDDEN_WORDS, MAGIC_PHRASES, RISKY_PATTERNS,
     FORBIDDEN_CTA, SCORING, THRESHOLDS, INFORMATIONAL_KEYWORDS,
 )
+
+LEARNED_FILE = os.path.join(os.path.dirname(__file__), "learned_rules.json")
+
+
+def load_learned_rules() -> dict:
+    """학습된 규칙 로드 — 파일 없거나 파싱 실패 시 빈 값 반환"""
+    try:
+        with open(LEARNED_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {
+            "learned_forbidden_words": {},
+            "learned_magic_phrases": [],
+            "learned_informational_keywords": [],
+            "last_updated": None,
+            "total_cases": 0,
+        }
 
 
 @dataclass
@@ -41,8 +61,11 @@ class CheckResult:
 
 
 def check_forbidden_words(text: str) -> list[CheckItem]:
-    """금지 워딩 검사"""
+    """금지 워딩 검사 — 정적 + 학습 규칙 병합"""
     items = []
+    learned = load_learned_rules()
+
+    # 정적 규칙
     for word, info in FORBIDDEN_WORDS.items():
         if word in text:
             suggestion = ""
@@ -57,19 +80,35 @@ def check_forbidden_words(text: str) -> list[CheckItem]:
                 deduction=SCORING["forbidden_word"],
                 suggestion=suggestion,
             ))
+
+    # 학습 규칙
+    for word, reason in learned.get("learned_forbidden_words", {}).items():
+        if word in text and word not in FORBIDDEN_WORDS:
+            items.append(CheckItem(
+                category="forbidden",
+                severity="critical",
+                message=f'금지 워딩 "{word}" 발견 — {reason} (자동 학습)',
+                deduction=SCORING["forbidden_word"],
+                suggestion=f'"{word}" 삭제 또는 친구톡 전환 검토',
+            ))
     return items
 
 
 def is_informational_message(text: str) -> tuple[bool, list[str]]:
-    """본문이 순수 정보성 메시지인지 판단"""
-    found = [kw for kw in INFORMATIONAL_KEYWORDS if kw in text]
+    """본문이 순수 정보성 메시지인지 판단 — 정적 + 학습 키워드"""
+    learned = load_learned_rules()
+    all_keywords = INFORMATIONAL_KEYWORDS + learned.get("learned_informational_keywords", [])
+    found = [kw for kw in all_keywords if kw in text]
     return bool(found), found
 
 
 def check_magic_phrases(text: str) -> tuple[list[CheckItem], list[str]]:
     """매직 문구(수신자 액션 고정값) 검사 — 정보성 메시지는 감점 완화"""
+    learned = load_learned_rules()
+    all_phrases = MAGIC_PHRASES + learned.get("learned_magic_phrases", [])
+
     found = []
-    for mp in MAGIC_PHRASES:
+    for mp in all_phrases:
         if mp["phrase"] in text:
             found.append(mp["phrase"])
 

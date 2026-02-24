@@ -3,7 +3,7 @@
 B2D 팀 내부용: 카카오 알림톡 검수 결과를 사전 예측
 """
 import streamlit as st
-from checker import run_check, CheckResult
+from checker import run_check, CheckResult, load_learned_rules
 from ai_analyzer import analyze_with_ai
 from rules import FORBIDDEN_WORDS, MAGIC_PHRASES, THRESHOLDS
 
@@ -15,7 +15,11 @@ st.set_page_config(
 
 # --- 헤더 ---
 st.title("🔍 알림톡 검수 예측기")
-st.caption("B2D 팀 내부용 · Slack 200건+ 검수 데이터 기반")
+learned = load_learned_rules()
+last_learn = learned.get("last_updated") or "아직 없음"
+total_cases = learned.get("total_cases", 0)
+extra_rules = len(learned.get("learned_forbidden_words", {})) + len(learned.get("learned_magic_phrases", []))
+st.caption(f"B2D 팀 내부용 · 자동 학습 {total_cases}건 반영 · 마지막 학습: {last_learn}")
 st.divider()
 
 # --- 입력 영역 ---
@@ -137,3 +141,16 @@ with st.expander("📚 검수 가이드라인 참고"):
 
     st.markdown("### 채널별 주의")
     st.markdown("동일 내용이라도 수멤버스/아큐렉스 채널별로 검수 결과가 다를 수 있음")
+
+    # 학습된 규칙 표시
+    if extra_rules > 0:
+        st.markdown("---")
+        st.markdown("### 🤖 자동 학습된 규칙")
+        if learned.get("learned_forbidden_words"):
+            st.markdown("**추가 금지 워딩:**")
+            for word, reason in learned["learned_forbidden_words"].items():
+                st.markdown(f"- **{word}**: {reason}")
+        if learned.get("learned_magic_phrases"):
+            st.markdown("**추가 매직 문구:**")
+            for mp in learned["learned_magic_phrases"]:
+                st.markdown(f'- **"{mp["phrase"]}"**: {mp.get("desc", "")}')
