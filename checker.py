@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from rules import (
     FORBIDDEN_WORDS, MAGIC_PHRASES, RISKY_PATTERNS,
     FORBIDDEN_CTA, SCORING, THRESHOLDS, INFORMATIONAL_KEYWORDS,
-    ANNOUNCEMENT_PATTERNS,
+    ANNOUNCEMENT_PATTERNS, CONTENT_ANNOUNCEMENT_WORDS,
 )
 
 LEARNED_FILE = os.path.join(os.path.dirname(__file__), "learned_rules.json")
@@ -241,6 +241,29 @@ def check_announcement_patterns(text: str, has_magic: bool) -> list[CheckItem]:
     )]
 
 
+def check_content_announcement(text: str) -> list[CheckItem]:
+    """본문 공지성 문구 검사 — 매직 문구와 무관하게 적용
+    매직 문구가 있어도 "오픈 소식" 등은 일괄 공지 느낌을 줘서 반려될 수 있음.
+    실제 사례: "요청하신 원장님께 오픈 소식을 안내드립니다" → 반려
+             "요청하신 원장님께 열람 권한이 부여되어 안내드립니다" → 승인
+    """
+    found = [cw for cw in CONTENT_ANNOUNCEMENT_WORDS if cw["pattern"] in text]
+    if not found:
+        return []
+
+    items = []
+    for cw in found:
+        fix_text = f' → "{cw["fix"]}"로 변경' if cw.get("fix") else ""
+        items.append(CheckItem(
+            category="content_announcement",
+            severity="warning",
+            message=f'공지성 문구 "{cw["pattern"]}" — {cw["reason"]}',
+            deduction=SCORING["content_announcement"],
+            suggestion=f'"{cw["pattern"]}"{fix_text} (수신자 액션 결과로 표현 변경)',
+        ))
+    return items
+
+
 def run_check(body: str, cta: str = "") -> CheckResult:
     """전체 검수 예측 실행"""
     result = CheckResult()
@@ -269,6 +292,9 @@ def run_check(body: str, cta: str = "") -> CheckResult:
 
     # 7. 공지성 패턴 (매직 문구 없을 때만 감점)
     result.items.extend(check_announcement_patterns(body, bool(magic_found)))
+
+    # 8. 본문 공지성 문구 (매직 문구와 무관)
+    result.items.extend(check_content_announcement(body))
 
     # 점수 계산
     for item in result.items:

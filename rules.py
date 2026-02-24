@@ -68,6 +68,15 @@ ANNOUNCEMENT_PATTERNS = [
     {"pattern": "안내드립니다", "reason": "일방적 안내 (수신자 액션 없이 발신)"},
 ]
 
+# 공지성 문구 — 매직 문구와 무관하게 적용 (매직 문구로도 방어 불가)
+# 실제 반려→승인 사례: "오픈 소식을 안내드립니다" → "열람 권한이 부여되어 안내드립니다"
+CONTENT_ANNOUNCEMENT_WORDS = [
+    {"pattern": "오픈 소식", "reason": "서비스/자료 오픈 공지 느낌 (실제 반려 사례)", "fix": "권한이 부여되어"},
+    {"pattern": "출시 소식", "reason": "신규 서비스 출시 공지 느낌", "fix": "출시되어 안내"},
+    {"pattern": "런칭 소식", "reason": "신규 서비스 런칭 공지 느낌", "fix": "이용 가능하게 되어"},
+    {"pattern": "오픈을 안내", "reason": "서비스 오픈 일괄 공지 느낌", "fix": "이용 권한 부여"},
+]
+
 # 채점 가중치
 SCORING = {
     "forbidden_word": -25,       # 금지 워딩 1개당
@@ -78,6 +87,7 @@ SCORING = {
     "too_long": -5,              # 500자 초과
     "risky_pattern": -10,        # 위험 패턴 1개당
     "announcement_pattern": -10, # 공지성 패턴 1개당 (최대 -20, 매직 문구 없을 때만)
+    "content_announcement": -15, # 본문 공지성 문구 (매직 문구와 무관하게 적용)
 }
 
 # 판정 기준
