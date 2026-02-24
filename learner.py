@@ -16,13 +16,7 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 CHANNEL_ID = "C06JA0YS64E"  # m_13_b2d_공지
 LEARNED_FILE = os.path.join(os.path.dirname(__file__), "learned_rules.json")
 
-SEARCH_QUERIES = [
-    "검수 승인",
-    "검수 완료",
-    "검수 통과",
-    "반려",
-    "검수 반려",
-]
+SEARCH_KEYWORDS = ["검수", "반려", "승인", "알림톡", "친구톡"]
 
 GEMINI_PROMPT = """아래는 카카오 알림톡 검수 관련 Slack 메시지들입니다.
 각 메시지를 분석하여 JSON 형태로 결과를 정리해주세요.
@@ -68,51 +62,46 @@ GEMINI_PROMPT = """아래는 카카오 알림톡 검수 관련 Slack 메시지�
 {messages}"""
 
 
-def search_slack(query: str, hours_back: int = 25) -> list[dict]:
-    """Slack에서 최근 N시간 내 메시지 검색"""
-    after_ts = int((datetime.now(timezone.utc) - timedelta(hours=hours_back)).timestamp())
-    url = "https://slack.com/api/search.messages"
+def fetch_channel_history(hours_back: int = 25) -> list[dict]:
+    """conversations.history로 채널 메시지 가져오기 (search:read 스코프 불필요)"""
+    oldest = str(int((datetime.now(timezone.utc) - timedelta(hours=hours_back)).timestamp()))
+    url = "https://slack.com/api/conversations.history"
     headers = {"Authorization": f"Bearer {SLACK_TOKEN}"}
     params = {
-        "query": f"{query} in:<#{CHANNEL_ID}>",
-        "count": 20,
-        "sort": "timestamp",
+        "channel": CHANNEL_ID,
+        "oldest": oldest,
+        "limit": 100,
     }
     resp = requests.get(url, headers=headers, params=params)
     data = resp.json()
 
     if not data.get("ok"):
-        print(f"Slack 검색 실패 ({query}): {data.get('error', 'unknown')}")
+        print(f"Slack 채널 히스토리 실패: {data.get('error', 'unknown')}")
         return []
 
-    messages = []
-    for match in data.get("messages", {}).get("matches", []):
-        msg_ts = float(match.get("ts", 0))
-        if msg_ts >= after_ts:
-            messages.append({
-                "ts": match.get("ts"),
-                "text": match.get("text", ""),
-                "user": match.get("username", ""),
-                "date": datetime.fromtimestamp(msg_ts, timezone.utc).strftime("%Y-%m-%d %H:%M"),
-            })
-    return messages
+    return data.get("messages", [])
 
 
 def collect_messages() -> list[dict]:
-    """모든 검색 쿼리로 메시지 수집 (중복 제거)"""
-    seen_ts = set()
-    all_messages = []
+    """채널 히스토리에서 검수 관련 메시지만 필터링"""
+    raw_messages = fetch_channel_history()
+    print(f"  채널 메시지 총 {len(raw_messages)}건 수신")
 
-    for query in SEARCH_QUERIES:
-        results = search_slack(query)
-        for msg in results:
-            if msg["ts"] not in seen_ts:
-                seen_ts.add(msg["ts"])
-                all_messages.append(msg)
-                print(f"  [{msg['date']}] {msg['user']}: {msg['text'][:80]}...")
+    filtered = []
+    for msg in raw_messages:
+        text = msg.get("text", "")
+        if any(kw in text for kw in SEARCH_KEYWORDS):
+            msg_ts = float(msg.get("ts", 0))
+            filtered.append({
+                "ts": msg.get("ts"),
+                "text": text,
+                "user": msg.get("user", ""),
+                "date": datetime.fromtimestamp(msg_ts, timezone.utc).strftime("%Y-%m-%d %H:%M"),
+            })
+            print(f"  [{filtered[-1]['date']}] {text[:80]}...")
 
-    print(f"\n수집된 메시지: {len(all_messages)}건")
-    return all_messages
+    print(f"\n검수 관련 메시지: {len(filtered)}건")
+    return filtered
 
 
 def analyze_with_gemini(messages: list[dict]) -> dict:
