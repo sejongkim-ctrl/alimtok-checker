@@ -4,7 +4,9 @@ B2D 팀 내부용: 카카오 알림톡 검수 결과를 사전 예측
 """
 import os
 import re
+import base64
 import streamlit as st
+import streamlit.components.v1 as st_components
 from checker import run_check, CheckResult, load_learned_rules
 from ai_analyzer import analyze_with_ai, extract_text_from_image, rewrite_attractive
 from rules import FORBIDDEN_WORDS, MAGIC_PHRASES, THRESHOLDS
@@ -19,6 +21,10 @@ st.set_page_config(
 api_key = os.environ.get("GEMINI_API_KEY", "")
 if hasattr(st, "secrets") and "GEMINI_API_KEY" in st.secrets:
     api_key = st.secrets["GEMINI_API_KEY"]
+
+# --- 이미지 붙여넣기 컴포넌트 ---
+_paste_component_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "components", "paste_image")
+paste_image_component = st_components.declare_component("paste_image", path=_paste_component_path)
 
 # --- 헤더 ---
 st.title("🔍 알림톡 검수 예측기")
@@ -35,26 +41,24 @@ if "body_input" not in st.session_state:
 if "cta_input" not in st.session_state:
     st.session_state["cta_input"] = ""
 
-# --- 이미지 업로드 (OCR) ---
+# --- 이미지 붙여넣기 (OCR) ---
 with st.expander("📷 이미지에서 텍스트 추출", expanded=False):
-    uploaded_file = st.file_uploader(
-        "알림톡 스크린샷",
-        type=["png", "jpg", "jpeg"],
-        help="알림톡 본문 스크린샷을 올리면 Gemini Vision이 텍스트를 자동 추출합니다",
-    )
-    if uploaded_file:
-        st.image(uploaded_file, use_container_width=True)
+    pasted_data = paste_image_component(key="paste_area", default=None)
+
+    if pasted_data and isinstance(pasted_data, str) and pasted_data.startswith("data:image"):
+        # data URL → bytes 변환
+        header, b64_str = pasted_data.split(",", 1)
+        mime_type = header.split(":")[1].split(";")[0]
+        image_bytes = base64.b64decode(b64_str)
+
         if st.button("🔍 텍스트 추출하기", use_container_width=True):
             if not api_key:
                 st.error("GEMINI_API_KEY가 설정되지 않았습니다.")
             else:
                 with st.spinner("Gemini Vision으로 텍스트 추출 중..."):
-                    ocr_result = extract_text_from_image(
-                        uploaded_file.getvalue(), uploaded_file.type, api_key
-                    )
+                    ocr_result = extract_text_from_image(image_bytes, mime_type, api_key)
                 if ocr_result["success"]:
                     extracted = ocr_result["text"]
-                    # CTA 분리
                     cta_match = re.search(r'\[CTA:\s*(.+?)\]', extracted)
                     if cta_match:
                         st.session_state["cta_input"] = cta_match.group(1).strip()

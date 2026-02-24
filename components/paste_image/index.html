@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: "Source Sans Pro", -apple-system, BlinkMacSystemFont, sans-serif; }
+
+#paste-zone {
+  border: 2px dashed #d1d5db;
+  border-radius: 10px;
+  padding: 24px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: #fafafa;
+  outline: none;
+}
+#paste-zone:focus,
+#paste-zone:hover {
+  border-color: #ff4b4b;
+  background: #fff8f8;
+}
+#paste-zone.active {
+  border-color: #ff4b4b;
+  border-style: solid;
+  background: #fff0f0;
+}
+#paste-zone.done {
+  border-color: #21c354;
+  border-style: solid;
+  background: #f0fdf4;
+}
+
+.icon { font-size: 28px; margin-bottom: 6px; }
+.main-text { font-size: 15px; color: #444; font-weight: 500; }
+.sub-text { font-size: 12px; color: #999; margin-top: 4px; }
+
+#preview-wrap { display: none; margin-top: 12px; }
+#preview-img {
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: 6px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  #paste-zone { background: #1a1a2e; border-color: #444; }
+  #paste-zone:focus, #paste-zone:hover { background: #2a1a1e; border-color: #ff4b4b; }
+  #paste-zone.active { background: #2a1a1e; }
+  #paste-zone.done { background: #1a2e1a; border-color: #21c354; }
+  .main-text { color: #ddd; }
+  .sub-text { color: #888; }
+}
+</style>
+</head>
+<body>
+<div id="paste-zone" tabindex="0">
+  <div class="icon" id="icon">📋</div>
+  <div class="main-text" id="main-text">여기를 클릭한 후 Ctrl+V (⌘V) 붙여넣기</div>
+  <div class="sub-text" id="sub-text">알림톡 스크린샷을 복사한 후 붙여넣으세요 · 드래그&드롭도 가능</div>
+  <div id="preview-wrap"><img id="preview-img" /></div>
+</div>
+
+<script>
+// Streamlit Component Communication
+function sendMsg(type, data) {
+  window.parent.postMessage(Object.assign({isStreamlitMessage: true, type: type}, data), "*");
+}
+
+const zone = document.getElementById("paste-zone");
+const icon = document.getElementById("icon");
+const mainText = document.getElementById("main-text");
+const subText = document.getElementById("sub-text");
+const previewWrap = document.getElementById("preview-wrap");
+const previewImg = document.getElementById("preview-img");
+
+function handleImage(blob) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const dataUrl = e.target.result;
+    previewImg.src = dataUrl;
+    previewWrap.style.display = "block";
+    icon.textContent = "✅";
+    mainText.textContent = "이미지 붙여넣기 완료";
+    subText.textContent = "다른 이미지를 붙여넣으면 교체됩니다";
+    zone.classList.remove("active");
+    zone.classList.add("done");
+    sendMsg("streamlit:setComponentValue", {value: dataUrl});
+    setTimeout(function() {
+      sendMsg("streamlit:setFrameHeight", {height: document.body.scrollHeight + 10});
+    }, 50);
+  };
+  reader.readAsDataURL(blob);
+}
+
+// Click to focus
+zone.addEventListener("click", function() { zone.focus(); });
+zone.addEventListener("focus", function() {
+  if (!zone.classList.contains("done")) zone.classList.add("active");
+});
+zone.addEventListener("blur", function() { zone.classList.remove("active"); });
+
+// Paste event
+document.addEventListener("paste", function(e) {
+  var items = e.clipboardData.items;
+  for (var i = 0; i < items.length; i++) {
+    if (items[i].type.startsWith("image/")) {
+      e.preventDefault();
+      handleImage(items[i].getAsFile());
+      return;
+    }
+  }
+});
+
+// Drag & Drop
+zone.addEventListener("dragover", function(e) { e.preventDefault(); zone.classList.add("active"); });
+zone.addEventListener("dragleave", function() { zone.classList.remove("active"); });
+zone.addEventListener("drop", function(e) {
+  e.preventDefault();
+  zone.classList.remove("active");
+  var files = e.dataTransfer.files;
+  if (files.length > 0 && files[0].type.startsWith("image/")) {
+    handleImage(files[0]);
+  }
+});
+
+// Listen for render events (Streamlit may re-render)
+window.addEventListener("message", function(event) {
+  if (event.data.type === "streamlit:render") {
+    // Preserve state across re-renders
+  }
+});
+
+// Init
+sendMsg("streamlit:componentReady", {apiVersion: 1});
+sendMsg("streamlit:setFrameHeight", {height: 100});
+</script>
+</body>
+</html>
