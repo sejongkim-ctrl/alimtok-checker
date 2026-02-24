@@ -1,8 +1,29 @@
 {
-  "last_updated": null,
-  "total_cases": 0,
-  "learned_forbidden_words": {},
+  "last_updated": "2026-02-24",
+  "total_cases": 1,
+  "learned_forbidden_words": {
+    "환자분들에게 ~ 바랍니다": "홍보/공지성 메시지로 판단될 수 있음",
+    "할인 처방가로 처방하실 수 없습니다": "할인 혜택 안내로 광고성 메시지로 판단될 수 있음"
+  },
   "learned_magic_phrases": [],
-  "learned_informational_keywords": [],
-  "cases": []
+  "learned_informational_keywords": [
+    "공진단",
+    "경옥고",
+    "가정의달 이벤트"
+  ],
+  "cases": [
+    {
+      "date": "2026-02-23",
+      "summary": "설 이벤트 종료 푸시 알림톡",
+      "result": "반려",
+      "rejections_before_approval": 1,
+      "rejection_reasons": [
+        "광고성 메시지 (구매 유도 및 할인 혜택 안내)",
+        "변수값 내용 확인 불가"
+      ],
+      "approval_factors": [],
+      "final_message_text": ":rotating_light:설 이벤트 종료 D-4\n\n이번 이벤트 종료 후, 가정의달 이벤트(4/13~5/31)까지 공진단(총명공진단 제외) 및 경옥고의 할인 처방가는 적용되지 않습니다.\n\n환자분들에게 \"지금 안 하시면 약 두 달간 할인이 없다\"는 점을 어필해 주세요.\n\n지금 바로 실행하세요.\n1. 기존 환자 해피콜: \"설 혜택 종료 임박\"을 명분으로 마지막 처방 기회를 안내하세요.\n2. 신규 환자 집중 권유: 환절기 보약 수요를 미리 선점하여 원내 매출을 극대화하시기 바랍니다.\n남은 4일, 화력을 집중해 주세요!",
+      "key_phrases": []
+    }
+  ]
 }
