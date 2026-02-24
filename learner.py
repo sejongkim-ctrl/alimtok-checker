@@ -108,40 +108,83 @@ def fetch_thread_replies(thread_ts: str) -> list[dict]:
 PNG_MAGIC = b'\x89PNG'
 JPEG_MAGIC = b'\xff\xd8\xff'
 
-def download_slack_image(url_private: str) -> tuple[str, str] | None:
-    """Slack 이미지 다운로드 → base64 인코딩 + 유효성 검증"""
+
+def _validate_image(content: bytes) -> str | None:
+    """이미지 바이너리 유효성 검증 → mime type 반환, 실패 시 None"""
+    if len(content) < 100:
+        return None
+    if content[:4] == PNG_MAGIC:
+        return "image/png"
+    if content[:3] == JPEG_MAGIC:
+        return "image/jpeg"
+    return None
+
+
+def download_slack_image(file_info: dict) -> tuple[str, str] | None:
+    """Slack 이미지 다운로드 — Bearer 토큰 시도 → 실패 시 공개 URL 방식"""
+    file_id = file_info.get("id", "")
+    url = file_info.get("url_private_download") or file_info.get("url_private", "")
+    if not url:
+        return None
+
     try:
+        # 1차: Bearer 토큰으로 직접 다운로드
         resp = requests.get(
-            url_private,
+            url,
             headers={"Authorization": f"Bearer {SLACK_TOKEN}"},
             timeout=15,
             allow_redirects=True,
         )
-        if resp.status_code != 200:
-            print(f"    다운로드 실패: HTTP {resp.status_code}")
+        if resp.status_code == 200:
+            mime = _validate_image(resp.content)
+            if mime:
+                b64 = base64.b64encode(resp.content).decode("utf-8")
+                print(f"    ✓ 직접 다운로드: {len(resp.content):,} bytes ({mime})")
+                return b64, mime
+
+        # 2차: files.sharedPublicURL → 공개 URL로 다운로드 → revokePublicURL
+        if not file_id:
+            print(f"    파일 ID 없음 — 공개 URL 방식 불가")
             return None
 
-        content = resp.content
-        content_type = resp.headers.get("Content-Type", "")
+        print(f"    Bearer 토큰 실패 → 공개 URL 방식 시도")
+        pub_resp = requests.post(
+            "https://slack.com/api/files.sharedPublicURL",
+            headers={"Authorization": f"Bearer {SLACK_TOKEN}"},
+            data={"file": file_id},
+        )
+        pub_data = pub_resp.json()
 
-        # 유효성 검증: 실제 이미지인지 확인 (HTML 로그인 페이지 방지)
-        if content[:4] == PNG_MAGIC:
-            mime = "image/png"
-        elif content[:3] == JPEG_MAGIC:
-            mime = "image/jpeg"
-        elif "image/" in content_type:
-            mime = content_type.split(";")[0].strip()
-        else:
-            print(f"    유효하지 않은 이미지 (Content-Type: {content_type}, 크기: {len(content)})")
+        if not pub_data.get("ok"):
+            print(f"    공개 URL 생성 실패: {pub_data.get('error', 'unknown')}")
             return None
 
-        if len(content) < 100:
-            print(f"    이미지 너무 작음: {len(content)} bytes")
-            return None
+        permalink_public = pub_data.get("file", {}).get("permalink_public", "")
+        # permalink_public 형식: https://slack-files.com/TEAM-FILE-SECRET
+        pub_secret = permalink_public.rsplit("-", 1)[-1] if permalink_public else ""
 
-        b64 = base64.b64encode(content).decode("utf-8")
-        print(f"    ✓ {len(content):,} bytes → base64 ({mime})")
-        return b64, mime
+        if pub_secret:
+            public_url = f"{url}?pub_secret={pub_secret}"
+            resp = requests.get(public_url, timeout=15)
+
+            # 사용 후 즉시 공개 해제
+            requests.post(
+                "https://slack.com/api/files.revokePublicURL",
+                headers={"Authorization": f"Bearer {SLACK_TOKEN}"},
+                data={"file": file_id},
+            )
+
+            if resp.status_code == 200:
+                mime = _validate_image(resp.content)
+                if mime:
+                    b64 = base64.b64encode(resp.content).decode("utf-8")
+                    print(f"    ✓ 공개 URL: {len(resp.content):,} bytes ({mime})")
+                    return b64, mime
+                else:
+                    print(f"    공개 URL 응답이 유효한 이미지가 아님 ({len(resp.content)} bytes)")
+
+        print(f"    이미지 다운로드 최종 실패")
+        return None
 
     except requests.RequestException as e:
         print(f"    다운로드 예외: {e}")
@@ -203,18 +246,16 @@ def collect_threads() -> list[dict]:
                     break
                 mimetype = f.get("mimetype", "")
                 if mimetype.startswith("image/"):
-                    url = f.get("url_private_download") or f.get("url_private", "")
-                    if url:
-                        print(f"  📷 이미지 다운로드: {f.get('name', 'unknown')} ({mimetype})")
-                        result = download_slack_image(url)
-                        if result:
-                            img_b64, detected_mime = result
-                            thread_data["images"].append({
-                                "data": img_b64,
-                                "mimetype": detected_mime,
-                                "name": f.get("name", "image"),
-                            })
-                            total_images += 1
+                    print(f"  📷 이미지 다운로드: {f.get('name', 'unknown')} ({mimetype})")
+                    result = download_slack_image(f)
+                    if result:
+                        img_b64, detected_mime = result
+                        thread_data["images"].append({
+                            "data": img_b64,
+                            "mimetype": detected_mime,
+                            "name": f.get("name", "image"),
+                        })
+                        total_images += 1
 
         threads.append(thread_data)
         msg_count = len(thread_data["messages"])
@@ -239,17 +280,15 @@ def collect_threads() -> list[dict]:
                 break
             mimetype = f.get("mimetype", "")
             if mimetype.startswith("image/"):
-                url = f.get("url_private_download") or f.get("url_private", "")
-                if url:
-                    result = download_slack_image(url)
-                    if result:
-                        img_b64, detected_mime = result
-                        thread_data["images"].append({
-                            "data": img_b64,
-                            "mimetype": detected_mime,
-                            "name": f.get("name", "image"),
-                        })
-                        total_images += 1
+                result = download_slack_image(f)
+                if result:
+                    img_b64, detected_mime = result
+                    thread_data["images"].append({
+                        "data": img_b64,
+                        "mimetype": detected_mime,
+                        "name": f.get("name", "image"),
+                    })
+                    total_images += 1
         threads.append(thread_data)
 
     print(f"\n검수 관련 스레드: {len(threads)}건 (이미지 총 {total_images}건)")
