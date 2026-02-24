@@ -12,6 +12,7 @@ from rules import (
     FORBIDDEN_WORDS, MAGIC_PHRASES, RISKY_PATTERNS,
     FORBIDDEN_CTA, SCORING, THRESHOLDS, INFORMATIONAL_KEYWORDS,
     ANNOUNCEMENT_PATTERNS, CONTENT_ANNOUNCEMENT_WORDS,
+    RECIPIENT_QUALIFIERS,
 )
 
 LEARNED_FILE = os.path.join(os.path.dirname(__file__), "learned_rules.json")
@@ -293,6 +294,37 @@ def check_content_announcement(text: str) -> list[CheckItem]:
     return items
 
 
+def check_announcement_with_magic(text: str, magic_found: list[str]) -> list[CheckItem]:
+    """매직 문구 + 공지성 패턴 동시 존재 검사
+    매직 문구가 있어도 공지성 패턴이 3개 이상이면 수신자 특정이 약할 수 있음.
+    단, RECIPIENT_QUALIFIERS 중 하나라도 있으면 수신자 특정이 충분하므로 스킵.
+
+    실제 사례: "처방해주셔서" 매직 문구 있었으나
+              "안내드립니다" + "운영진입니다" + "운영진 드림" 3개 공지 패턴
+              → "수신 대상을 명확하게 확인하기 어려워" 반려
+    """
+    if not magic_found:
+        return []
+
+    ann_found = [ap for ap in ANNOUNCEMENT_PATTERNS if ap["pattern"] in text]
+    if len(ann_found) < 3:
+        return []
+
+    # 수신자 특정 강화 표현이 있으면 면제
+    for rq in RECIPIENT_QUALIFIERS:
+        if rq in text:
+            return []
+
+    patterns_text = ", ".join(f'"{p["pattern"]}"' for p in ann_found)
+    return [CheckItem(
+        category="announcement_with_magic",
+        severity="warning",
+        message=f'매직 문구 있으나 공지성 패턴 다수 — {patterns_text} (수신 대상 불명확 위험)',
+        deduction=SCORING["announcement_with_magic"],
+        suggestion='수신자 타겟팅 강화 필요: "수신하기 원하시는", "권한이 부여되어", "가입하시어" 등 추가',
+    )]
+
+
 def run_check(body: str, cta: str = "", targeted: bool = False) -> CheckResult:
     """전체 검수 예측 실행
     targeted: True면 특정 대상 발송 (공지성 패턴 감점 면제, 매직 문구 감점 완화)
@@ -338,6 +370,9 @@ def run_check(body: str, cta: str = "", targeted: bool = False) -> CheckResult:
 
     # 8. 본문 공지성 문구 (매직 문구와 무관)
     result.items.extend(check_content_announcement(text))
+
+    # 9. 매직 문구 + 공지성 패턴 동시 존재 (매직 문구만으로 방어 안 되는 경우)
+    result.items.extend(check_announcement_with_magic(text, magic_found))
 
     # 점수 계산
     for item in result.items:
