@@ -287,7 +287,7 @@ def analyze_with_gemini(threads: list[dict]) -> dict:
             except (KeyError, IndexError):
                 pass
         else:
-            print(f"원본 응답 키: {list(data.keys())}")
+            print(f"원본 응답: {json.dumps(data, ensure_ascii=False)[:500]}")
         return empty
 
 
