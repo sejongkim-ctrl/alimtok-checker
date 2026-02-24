@@ -15,7 +15,7 @@ for mod_name in ["rules", "checker"]:
     if mod_name in sys.modules:
         importlib.reload(sys.modules[mod_name])
 
-from checker import run_check, CheckResult, load_learned_rules
+from checker import run_check, CheckResult, load_learned_rules, normalize_text
 from ai_analyzer import analyze_with_ai, extract_text_from_image, rewrite_attractive
 from rules import FORBIDDEN_WORDS, MAGIC_PHRASES, THRESHOLDS, CONTENT_ANNOUNCEMENT_WORDS
 
@@ -87,7 +87,8 @@ with st.expander("📷 이미지에서 텍스트 추출", expanded=False):
                     if cta_match:
                         st.session_state["cta_input"] = cta_match.group(1).strip()
                         extracted = re.sub(r'\n?\[CTA:\s*.+?\]', '', extracted).strip()
-                    st.session_state["body_input"] = extracted
+                    # OCR 줄바꿈 정규화 — 단어 중간 줄바꿈 제거
+                    st.session_state["body_input"] = normalize_text(extracted)
                     st.rerun()
                 else:
                     st.error(ocr_result["error"])
