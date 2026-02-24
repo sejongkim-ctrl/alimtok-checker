@@ -4,12 +4,20 @@ B2D 팀 내부용: 카카오 알림톡 검수 결과를 사전 예측
 """
 import os
 import re
+import sys
 import base64
+import importlib
 import streamlit as st
 import streamlit.components.v1 as st_components
+
+# 모듈 캐시 강제 무효화 — Streamlit Cloud 배포 시 .pyc 캐시 방지
+for mod_name in ["rules", "checker"]:
+    if mod_name in sys.modules:
+        importlib.reload(sys.modules[mod_name])
+
 from checker import run_check, CheckResult, load_learned_rules
 from ai_analyzer import analyze_with_ai, extract_text_from_image, rewrite_attractive
-from rules import FORBIDDEN_WORDS, MAGIC_PHRASES, THRESHOLDS
+from rules import FORBIDDEN_WORDS, MAGIC_PHRASES, THRESHOLDS, CONTENT_ANNOUNCEMENT_WORDS
 
 st.set_page_config(
     page_title="알림톡 검수 예측기",
@@ -48,7 +56,9 @@ learned = load_learned_rules()
 last_learn = learned.get("last_updated") or "아직 없음"
 total_cases = learned.get("total_cases", 0)
 extra_rules = len(learned.get("learned_forbidden_words", {})) + len(learned.get("learned_magic_phrases", []))
-st.caption(f"B2D 팀 내부용 · v2.1 공지성 문구 탐지 · 자동 학습 {total_cases}건 반영 · 마지막 학습: {last_learn}")
+_caw_count = len(CONTENT_ANNOUNCEMENT_WORDS)
+_has_check = hasattr(sys.modules.get("checker", None), "check_content_announcement")
+st.caption(f"B2D 팀 내부용 · v2.2 · 공지성 규칙 {_caw_count}개 · 체크함수 {'O' if _has_check else 'X'} · 학습 {total_cases}건 · {last_learn}")
 
 # --- Session State 초기화 ---
 if "body_input" not in st.session_state:
