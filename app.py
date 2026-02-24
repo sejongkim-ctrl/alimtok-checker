@@ -48,7 +48,7 @@ learned = load_learned_rules()
 last_learn = learned.get("last_updated") or "아직 없음"
 total_cases = learned.get("total_cases", 0)
 extra_rules = len(learned.get("learned_forbidden_words", {})) + len(learned.get("learned_magic_phrases", []))
-st.caption(f"B2D 팀 내부용 · 자동 학습 {total_cases}건 반영 · 마지막 학습: {last_learn}")
+st.caption(f"B2D 팀 내부용 · v2.1 공지성 문구 탐지 · 자동 학습 {total_cases}건 반영 · 마지막 학습: {last_learn}")
 
 # --- Session State 초기화 ---
 if "body_input" not in st.session_state:
