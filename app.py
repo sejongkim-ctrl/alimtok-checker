@@ -2,9 +2,11 @@
 알림톡 검수 예측기 — Streamlit 앱
 B2D 팀 내부용: 카카오 알림톡 검수 결과를 사전 예측
 """
+import os
+import re
 import streamlit as st
 from checker import run_check, CheckResult, load_learned_rules
-from ai_analyzer import analyze_with_ai
+from ai_analyzer import analyze_with_ai, extract_text_from_image, rewrite_attractive
 from rules import FORBIDDEN_WORDS, MAGIC_PHRASES, THRESHOLDS
 
 st.set_page_config(
@@ -12,6 +14,11 @@ st.set_page_config(
     page_icon="🔍",
     layout="centered",
 )
+
+# --- API 키 ---
+api_key = os.environ.get("GEMINI_API_KEY", "")
+if hasattr(st, "secrets") and "GEMINI_API_KEY" in st.secrets:
+    api_key = st.secrets["GEMINI_API_KEY"]
 
 # --- 헤더 ---
 st.title("🔍 알림톡 검수 예측기")
@@ -22,15 +29,52 @@ extra_rules = len(learned.get("learned_forbidden_words", {})) + len(learned.get(
 st.caption(f"B2D 팀 내부용 · 자동 학습 {total_cases}건 반영 · 마지막 학습: {last_learn}")
 st.divider()
 
+# --- Session State 초기화 ---
+if "body_input" not in st.session_state:
+    st.session_state["body_input"] = ""
+if "cta_input" not in st.session_state:
+    st.session_state["cta_input"] = ""
+
+# --- 이미지 업로드 (OCR) ---
+with st.expander("📷 이미지에서 텍스트 추출", expanded=False):
+    uploaded_file = st.file_uploader(
+        "알림톡 스크린샷",
+        type=["png", "jpg", "jpeg"],
+        help="알림톡 본문 스크린샷을 올리면 Gemini Vision이 텍스트를 자동 추출합니다",
+    )
+    if uploaded_file:
+        st.image(uploaded_file, use_container_width=True)
+        if st.button("🔍 텍스트 추출하기", use_container_width=True):
+            if not api_key:
+                st.error("GEMINI_API_KEY가 설정되지 않았습니다.")
+            else:
+                with st.spinner("Gemini Vision으로 텍스트 추출 중..."):
+                    ocr_result = extract_text_from_image(
+                        uploaded_file.getvalue(), uploaded_file.type, api_key
+                    )
+                if ocr_result["success"]:
+                    extracted = ocr_result["text"]
+                    # CTA 분리
+                    cta_match = re.search(r'\[CTA:\s*(.+?)\]', extracted)
+                    if cta_match:
+                        st.session_state["cta_input"] = cta_match.group(1).strip()
+                        extracted = re.sub(r'\n?\[CTA:\s*.+?\]', '', extracted).strip()
+                    st.session_state["body_input"] = extracted
+                    st.rerun()
+                else:
+                    st.error(ocr_result["error"])
+
 # --- 입력 영역 ---
 body = st.text_area(
     "알림톡 본문",
+    key="body_input",
     height=200,
-    placeholder="검수에 넣을 알림톡 본문을 붙여넣으세요...\n\n예시:\n수멤버스에 가입해주셔서 감사합니다.\n원장님께서 요청하신 세션 안내드립니다.",
+    placeholder="검수에 넣을 알림톡 본문을 붙여넣으세요...\n\n📷 이미지로도 입력 가능 — 위 '이미지에서 텍스트 추출' 클릭",
 )
 
 cta = st.text_input(
     "CTA 버튼명 (선택)",
+    key="cta_input",
     placeholder="예: 자세히 보기",
 )
 
@@ -92,17 +136,34 @@ if "result" in st.session_state:
         for i, item in enumerate(suggestions, 1):
             st.markdown(f"{i}. {item.suggestion}")
 
+    # --- 매력적 리라이팅 ---
+    st.divider()
+    st.subheader("✨ 매력적으로 리라이팅")
+    st.caption("검수 통과 범위 내에서 더 후킹한 메시지로 제안합니다.")
+
+    if st.button("✨ 매력적으로 리라이팅", use_container_width=True):
+        if not api_key:
+            st.error("GEMINI_API_KEY가 설정되지 않았습니다.")
+        else:
+            issues = [item.message for item in result.items if item.severity in ("critical", "warning")]
+            with st.spinner("Gemini AI가 리라이팅 중..."):
+                rewrite_result = rewrite_attractive(
+                    st.session_state["body"],
+                    st.session_state["cta"],
+                    issues,
+                    api_key,
+                )
+            if rewrite_result["success"]:
+                st.markdown("---")
+                st.markdown(rewrite_result["rewrite"])
+            else:
+                st.error(rewrite_result["error"])
+
     # AI 정밀 분석 버튼
     if result.needs_ai or result.score < THRESHOLDS["pass"]:
         st.divider()
         st.subheader("AI 정밀 분석")
         st.caption("Gemini AI가 카카오 검수 기준으로 본문을 정밀 분석합니다.")
-
-        # API 키 확인
-        import os
-        api_key = os.environ.get("GEMINI_API_KEY", "")
-        if hasattr(st, "secrets") and "GEMINI_API_KEY" in st.secrets:
-            api_key = st.secrets["GEMINI_API_KEY"]
 
         if st.button("🤖 AI 정밀 분석 실행", use_container_width=True):
             if not api_key:
