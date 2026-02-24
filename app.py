@@ -17,6 +17,22 @@ st.set_page_config(
     layout="centered",
 )
 
+# --- Custom CSS ---
+st.markdown("""
+<style>
+    .block-container { padding-top: 1.5rem; }
+    [data-testid="stMetricValue"] { font-size: 2.2rem; }
+    .section-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #888;
+        letter-spacing: 0.5px;
+        margin-bottom: 2px;
+        padding-left: 2px;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # --- API 키 ---
 api_key = os.environ.get("GEMINI_API_KEY", "")
 if hasattr(st, "secrets") and "GEMINI_API_KEY" in st.secrets:
@@ -33,7 +49,6 @@ last_learn = learned.get("last_updated") or "아직 없음"
 total_cases = learned.get("total_cases", 0)
 extra_rules = len(learned.get("learned_forbidden_words", {})) + len(learned.get("learned_magic_phrases", []))
 st.caption(f"B2D 팀 내부용 · 자동 학습 {total_cases}건 반영 · 마지막 학습: {last_learn}")
-st.divider()
 
 # --- Session State 초기화 ---
 if "body_input" not in st.session_state:
@@ -46,7 +61,6 @@ with st.expander("📷 이미지에서 텍스트 추출", expanded=False):
     pasted_data = paste_image_component(key="paste_area", default=None)
 
     if pasted_data and isinstance(pasted_data, str) and pasted_data.startswith("data:image"):
-        # data URL → bytes 변환
         header, b64_str = pasted_data.split(",", 1)
         mime_type = header.split(":")[1].split(";")[0]
         image_bytes = base64.b64decode(b64_str)
@@ -91,101 +105,173 @@ if st.button("검수 예측하기", type="primary", use_container_width=True):
         st.session_state["result"] = result
         st.session_state["body"] = body.strip()
         st.session_state["cta"] = cta.strip()
+        # 새 검수 시 이전 AI 결과 초기화
+        st.session_state.pop("rewrite_result", None)
+        st.session_state.pop("ai_result", None)
 
-# --- 결과 표시 ---
+
+# --- 헬퍼: 리라이팅 응답 파싱 ---
+def _parse_rewrite(text: str) -> dict:
+    """Gemini 리라이팅 응답을 섹션별로 파싱"""
+    sections = {"body": "", "changes": "", "prediction": ""}
+    parts = re.split(r'###\s*', text)
+    for part in parts:
+        p = part.strip()
+        if not p:
+            continue
+        if p.startswith("리라이팅 본문"):
+            sections["body"] = re.sub(r'^리라이팅 본문\s*\n?', '', p).strip()
+        elif p.startswith("변경 포인트"):
+            sections["changes"] = re.sub(r'^변경 포인트\s*\n?', '', p).strip()
+        elif p.startswith("예상 검수 결과"):
+            sections["prediction"] = re.sub(r'^예상 검수 결과\s*\n?', '', p).strip()
+    # 파싱 실패 시 원본 텍스트 사용
+    if not sections["body"]:
+        sections["body"] = text
+    return sections
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 결과 표시
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 if "result" in st.session_state:
     result: CheckResult = st.session_state["result"]
     st.divider()
 
-    # 점수 + 판정
-    col1, col2 = st.columns([1, 2])
-    with col1:
-        score_color = {"green": "🟢", "orange": "🟡", "red": "🔴"}[result.color]
-        st.metric(
-            label="검수 점수",
-            value=f"{result.score}/100",
-        )
-    with col2:
-        if result.color == "green":
-            st.success(f"{score_color} {result.verdict}")
-        elif result.color == "orange":
-            st.warning(f"{score_color} {result.verdict}")
-        else:
-            st.error(f"{score_color} {result.verdict}")
+    # ── 1. 점수 카드 ──────────────────────────
+    with st.container(border=True):
+        col1, col2 = st.columns([1, 2])
+        with col1:
+            st.metric(label="검수 점수", value=f"{result.score}/100")
+        with col2:
+            emoji = {"green": "🟢", "orange": "🟡", "red": "🔴"}[result.color]
+            if result.color == "green":
+                st.success(f"{emoji} {result.verdict}")
+            elif result.color == "orange":
+                st.warning(f"{emoji} {result.verdict}")
+            else:
+                st.error(f"{emoji} {result.verdict}")
+        st.progress(result.score / 100)
 
-    # 진행 바
-    st.progress(result.score / 100)
+    st.markdown("")
 
-    # 검사 항목별 결과
+    # ── 2. 검사 결과 ──────────────────────────
     st.subheader("검사 결과")
 
-    severity_icon = {
-        "critical": "❌",
-        "warning": "⚠️",
-        "info": "ℹ️",
-        "pass": "✅",
-    }
-
+    # Critical — 개별 callout
     for item in result.items:
-        icon = severity_icon.get(item.severity, "•")
-        st.markdown(f"{icon} **{item.message}**")
-        if item.suggestion:
-            st.markdown(f"&nbsp;&nbsp;&nbsp;&nbsp;💡 {item.suggestion}")
+        if item.severity == "critical":
+            msg = f"**{item.message}**"
+            if item.suggestion:
+                msg += f"\n\n💡 {item.suggestion}"
+            st.error(msg, icon="❌")
 
-    # 수정 제안 요약
-    suggestions = [item for item in result.items if item.suggestion]
-    if suggestions:
-        st.divider()
-        st.subheader("수정 제안 요약")
-        for i, item in enumerate(suggestions, 1):
-            st.markdown(f"{i}. {item.suggestion}")
+    # Warning — 개별 callout
+    for item in result.items:
+        if item.severity == "warning":
+            msg = f"**{item.message}**"
+            if item.suggestion:
+                msg += f"\n\n💡 {item.suggestion}"
+            st.warning(msg, icon="⚠️")
 
-    # --- 매력적 리라이팅 ---
+    # Pass — 그룹 callout
+    pass_items = [i for i in result.items if i.severity == "pass"]
+    if pass_items:
+        st.success("\n".join(f"- {i.message}" for i in pass_items), icon="✅")
+
+    # Info — 개별 callout
+    for item in result.items:
+        if item.severity == "info":
+            msg = f"**{item.message}**"
+            if item.suggestion:
+                msg += f"\n\n💡 {item.suggestion}"
+            st.info(msg, icon="ℹ️")
+
+    # ── 3. AI 액션 버튼 (가로 배치) ─────────────
     st.divider()
-    st.subheader("✨ 매력적으로 리라이팅")
-    st.caption("검수 통과 범위 내에서 더 후킹한 메시지로 제안합니다.")
+    col_rw, col_ai = st.columns(2)
 
-    if st.button("✨ 매력적으로 리라이팅", use_container_width=True):
+    with col_rw:
+        rewrite_clicked = st.button(
+            "✨ 매력적으로 리라이팅",
+            use_container_width=True,
+            help="검수 통과 범위 내에서 더 후킹한 메시지로 제안",
+        )
+    with col_ai:
+        ai_enabled = result.needs_ai or result.score < THRESHOLDS["pass"]
+        ai_clicked = st.button(
+            "🤖 AI 정밀 분석",
+            use_container_width=True,
+            disabled=not ai_enabled,
+            help="점수 80점 미만일 때 활성화됩니다" if not ai_enabled else "Gemini AI가 카카오 검수 기준으로 정밀 분석",
+        )
+
+    # 리라이팅 실행 → session_state 저장
+    if rewrite_clicked:
         if not api_key:
             st.error("GEMINI_API_KEY가 설정되지 않았습니다.")
         else:
             issues = [item.message for item in result.items if item.severity in ("critical", "warning")]
             with st.spinner("Gemini AI가 리라이팅 중..."):
-                rewrite_result = rewrite_attractive(
-                    st.session_state["body"],
-                    st.session_state["cta"],
-                    issues,
-                    api_key,
-                )
-            if rewrite_result["success"]:
-                st.markdown("---")
-                st.markdown(rewrite_result["rewrite"])
-            else:
-                st.error(rewrite_result["error"])
+                rw = rewrite_attractive(st.session_state["body"], st.session_state["cta"], issues, api_key)
+            st.session_state["rewrite_result"] = rw
+            if rw["success"]:
+                st.rerun()
 
-    # AI 정밀 분석 버튼
-    if result.needs_ai or result.score < THRESHOLDS["pass"]:
-        st.divider()
-        st.subheader("AI 정밀 분석")
-        st.caption("Gemini AI가 카카오 검수 기준으로 본문을 정밀 분석합니다.")
+    # AI 분석 실행 → session_state 저장
+    if ai_clicked and ai_enabled:
+        if not api_key:
+            st.error("GEMINI_API_KEY가 설정되지 않았습니다.")
+        else:
+            with st.spinner("Gemini AI 분석 중..."):
+                ai_res = analyze_with_ai(st.session_state["body"], st.session_state["cta"], api_key)
+            st.session_state["ai_result"] = ai_res
+            if ai_res["success"]:
+                st.rerun()
 
-        if st.button("🤖 AI 정밀 분석 실행", use_container_width=True):
-            if not api_key:
-                st.error("GEMINI_API_KEY가 설정되지 않았습니다.")
-            else:
-                with st.spinner("Gemini AI 분석 중..."):
-                    ai_result = analyze_with_ai(
-                        st.session_state["body"],
-                        st.session_state["cta"],
-                        api_key,
-                    )
-                if ai_result["success"]:
-                    st.markdown("---")
-                    st.markdown(ai_result["analysis"])
-                else:
-                    st.error(ai_result["error"])
+    # ── 4. 리라이팅 결과 (구조화 표시) ────────────
+    if "rewrite_result" in st.session_state:
+        rw = st.session_state["rewrite_result"]
+        if rw["success"]:
+            sections = _parse_rewrite(rw["rewrite"])
 
-# --- 하단 참고 가이드라인 ---
+            st.markdown("")
+            st.subheader("✨ 리라이팅 결과")
+
+            # 4-1. 리라이팅 본문
+            st.markdown('<p class="section-label">📝 리라이팅 본문</p>', unsafe_allow_html=True)
+            with st.container(border=True):
+                st.markdown(sections["body"])
+            st.caption("복사해서 검수에 바로 사용하세요")
+
+            # 4-2. 변경 포인트
+            if sections["changes"]:
+                st.markdown("")
+                st.markdown('<p class="section-label">🔄 변경 포인트</p>', unsafe_allow_html=True)
+                with st.container(border=True):
+                    st.markdown(sections["changes"])
+
+            # 4-3. 예상 검수 결과
+            if sections["prediction"]:
+                st.markdown("")
+                st.success(f"**예상 검수 결과** — {sections['prediction']}", icon="✅")
+        else:
+            st.error(rw["error"])
+
+    # ── 5. AI 정밀 분석 결과 ─────────────────────
+    if "ai_result" in st.session_state:
+        ai_res = st.session_state["ai_result"]
+        if ai_res["success"]:
+            st.markdown("")
+            st.subheader("🤖 AI 정밀 분석 결과")
+            with st.container(border=True):
+                st.markdown(ai_res["analysis"])
+        else:
+            st.error(ai_res["error"])
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 하단 참고 가이드라인
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 st.divider()
 with st.expander("📚 검수 가이드라인 참고"):
     st.markdown("### 금지 워딩")
@@ -207,7 +293,6 @@ with st.expander("📚 검수 가이드라인 참고"):
     st.markdown("### 채널별 주의")
     st.markdown("동일 내용이라도 수멤버스/아큐렉스 채널별로 검수 결과가 다를 수 있음")
 
-    # 학습된 규칙 표시
     if extra_rules > 0:
         st.markdown("---")
         st.markdown("### 🤖 자동 학습된 규칙")
