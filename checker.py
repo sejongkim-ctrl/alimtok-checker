@@ -17,6 +17,21 @@ from rules import (
 LEARNED_FILE = os.path.join(os.path.dirname(__file__), "learned_rules.json")
 
 
+def normalize_text(text: str) -> str:
+    """패턴 매칭용 텍스트 정규화 — OCR/복사 시 잘린 줄바꿈 복원
+    - 빈 줄(문단 구분)은 공백 1칸으로 치환
+    - 단일 줄바꿈(단어 중간 줄바꿈 포함)은 제거
+    - 결과: 모든 텍스트가 한 줄로 이어져 패턴 매칭이 정확해짐
+    """
+    # 문단 구분(빈 줄) → 공백
+    text = re.sub(r'\n\s*\n', ' ', text)
+    # 단일 줄바꿈 → 제거 (단어 중간 줄바꿈 복원: "처\n방해주셔서" → "처방해주셔서")
+    text = text.replace('\n', '')
+    # 연속 공백 정리
+    text = re.sub(r' +', ' ', text)
+    return text.strip()
+
+
 def load_learned_rules() -> dict:
     """학습된 규칙 로드 — 파일 없거나 파싱 실패 시 빈 값 반환"""
     try:
@@ -284,6 +299,10 @@ def run_check(body: str, cta: str = "", targeted: bool = False) -> CheckResult:
     """
     result = CheckResult()
 
+    # 텍스트 정규화 — OCR/복사 줄바꿈으로 잘린 단어 복원
+    # 패턴 매칭은 정규화 텍스트, 길이 검사는 원본 사용
+    text = normalize_text(body)
+
     # 0. 발송 대상 표시
     if targeted:
         result.items.append(CheckItem(
@@ -293,32 +312,32 @@ def run_check(body: str, cta: str = "", targeted: bool = False) -> CheckResult:
         ))
 
     # 1. 금지 워딩
-    forbidden_items = check_forbidden_words(body)
+    forbidden_items = check_forbidden_words(text)
     result.items.extend(forbidden_items)
     result.forbidden_found = [item.message for item in forbidden_items]
 
     # 2. 매직 문구
-    magic_items, magic_found = check_magic_phrases(body, targeted=targeted)
+    magic_items, magic_found = check_magic_phrases(text, targeted=targeted)
     result.items.extend(magic_items)
     result.magic_found = magic_found
 
     # 3. 개인화 변수
-    result.items.extend(check_personalization(body))
+    result.items.extend(check_personalization(text))
 
     # 4. CTA 버튼
     result.items.extend(check_cta(cta))
 
-    # 5. 본문 길이
+    # 5. 본문 길이 (원본 텍스트 기준)
     result.items.extend(check_length(body))
 
     # 6. 위험 패턴
-    result.items.extend(check_risky_patterns(body))
+    result.items.extend(check_risky_patterns(text))
 
     # 7. 공지성 패턴 (매직 문구 없고 전체 발송일 때만 감점)
-    result.items.extend(check_announcement_patterns(body, bool(magic_found), targeted=targeted))
+    result.items.extend(check_announcement_patterns(text, bool(magic_found), targeted=targeted))
 
     # 8. 본문 공지성 문구 (매직 문구와 무관)
-    result.items.extend(check_content_announcement(body))
+    result.items.extend(check_content_announcement(text))
 
     # 점수 계산
     for item in result.items:
