@@ -58,7 +58,7 @@ total_cases = learned.get("total_cases", 0)
 extra_rules = len(learned.get("learned_forbidden_words", {})) + len(learned.get("learned_magic_phrases", []))
 _caw_count = len(CONTENT_ANNOUNCEMENT_WORDS)
 _has_check = hasattr(sys.modules.get("checker", None), "check_content_announcement")
-st.caption(f"B2D 팀 내부용 · v2.3 · 검사 9종 · 학습 {total_cases}건 · {last_learn}")
+st.caption(f"B2D 팀 내부용 · v3.0 · 검사 9종 · 학습 {total_cases}건 · {last_learn}")
 
 # --- Session State 초기화 ---
 if "body_input" not in st.session_state:
