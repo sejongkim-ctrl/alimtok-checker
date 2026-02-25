@@ -1,9 +1,10 @@
 """
-알림톡 검수 자동 학습기 v2 — 스레드 추적 + 이미지 멀티모달 분석
+알림톡 검수 자동 학습기 v3 — 동적 규칙 로딩 + 스레드 추적 + 이미지 멀티모달 분석
 - 매일 00:00 KST에 GitHub Actions에서 실행
 - Slack m_13_b2d_공지 채널에서 검수 관련 스레드 전체 추적
 - 스레드 내 이미지(알림톡 스크린샷)도 Gemini 멀티모달로 분석
 - 반려→수정→재검수→승인 전체 흐름을 맥락으로 파악
+- rules.py + learned_rules.json에서 현재 규칙을 동적 로딩하여 Gemini 프롬프트에 주입
 """
 import os
 import json
@@ -24,7 +25,7 @@ MAX_IMAGES_PER_THREAD = 3
 MAX_IMAGES_TOTAL = 25
 MAX_THREADS = 20
 
-GEMINI_PROMPT = """아래는 카카오 알림톡/친구톡 검수 관련 Slack 스레드들입니다.
+GEMINI_PROMPT_TEMPLATE = """아래는 카카오 알림톡/친구톡 검수 관련 Slack 스레드들입니다.
 각 스레드는 검수 요청 → 반려 → 수정 → 재검수 → 승인의 전체 흐름을 담고 있습니다.
 텍스트 메시지와 함께 첨부된 이미지(알림톡 본문 스크린샷)도 분석해주세요.
 
@@ -36,16 +37,19 @@ GEMINI_PROMPT = """아래는 카카오 알림톡/친구톡 검수 관련 Slack �
 5. 새로 발견된 금지 워딩, 매직 문구, 정보성 키워드 추출
 
 ## 기존에 이미 등록된 금지 워딩 (중복 제외)
-혜택, 프로모션, 할인, 무료, 구입, 기다리신, 미리 구비, 깜짝
+{forbidden_words}
 
 ## 기존에 이미 등록된 매직 문구 (중복 제외)
-요청하신, 가입하신, 가입해주셔서, 신청해주신, 참여해주셔서, 처방해주셔서, 계약된 원장님 대상, 가입되신
+{magic_phrases}
+
+## 기존에 이미 등록된 정보성 키워드 (중복 제외)
+{informational_keywords}
 
 ## 출력 형식 (반드시 이 JSON 형식만 출력)
 ```json
-{
+{{
   "cases": [
-    {
+    {{
       "date": "2026-02-24",
       "summary": "산청2호점 공동이용신고 알림톡",
       "result": "승인",
@@ -54,16 +58,16 @@ GEMINI_PROMPT = """아래는 카카오 알림톡/친구톡 검수 관련 Slack �
       "approval_factors": ["가입된 원장님 대상 문구 추가", "수신자 액션 명시"],
       "final_message_text": "최종 승인된 알림톡 본문 (이미지에서 읽은 경우 포함)",
       "key_phrases": ["가입된 원장님 대상"]
-    }
+    }}
   ],
-  "new_forbidden_words": {
+  "new_forbidden_words": {{
     "새로운금지워딩": "반려 사유 설명"
-  },
+  }},
   "new_magic_phrases": [
-    {"phrase": "새로운매직문구", "desc": "효과 설명"}
+    {{"phrase": "새로운매직문구", "desc": "효과 설명"}}
   ],
   "new_informational_keywords": ["새정보성키워드"]
-}
+}}
 ```
 
 검수와 무관한 스레드는 cases에서 제외하세요.
@@ -72,6 +76,32 @@ GEMINI_PROMPT = """아래는 카카오 알림톡/친구톡 검수 관련 Slack �
 
 ## Slack 스레드들
 {threads}"""
+
+
+def _load_current_rules() -> dict:
+    """rules.py 정적 규칙 + learned_rules.json 동적 규칙을 병합하여 반환"""
+    from rules import FORBIDDEN_WORDS, MAGIC_PHRASES, INFORMATIONAL_KEYWORDS
+
+    # 정적 규칙
+    forbidden = set(FORBIDDEN_WORDS.keys())
+    magic = {mp["phrase"] for mp in MAGIC_PHRASES}
+    info_kw = set(INFORMATIONAL_KEYWORDS)
+
+    # 동적 학습 규칙 병합
+    try:
+        with open(LEARNED_FILE, "r", encoding="utf-8") as f:
+            learned = json.load(f)
+        forbidden |= set(learned.get("learned_forbidden_words", {}).keys())
+        magic |= {mp["phrase"] for mp in learned.get("learned_magic_phrases", [])}
+        info_kw |= set(learned.get("learned_informational_keywords", []))
+    except (FileNotFoundError, json.JSONDecodeError):
+        pass
+
+    return {
+        "forbidden_words": ", ".join(sorted(forbidden)),
+        "magic_phrases": ", ".join(sorted(magic)),
+        "informational_keywords": ", ".join(sorted(info_kw)),
+    }
 
 
 def slack_api(endpoint: str, params: dict) -> dict:
@@ -348,7 +378,7 @@ def _call_gemini(parts: list[dict]) -> dict:
 
 
 def _build_parts(threads: list[dict]) -> list[dict]:
-    """스레드 리스트 → Gemini parts 구성"""
+    """스레드 리스트 → Gemini parts 구성 (현재 규칙을 동적 로딩)"""
     parts = []
     threads_text_parts = []
     for i, thread in enumerate(threads, 1):
@@ -360,7 +390,11 @@ def _build_parts(threads: list[dict]) -> list[dict]:
         threads_text_parts.append(thread_text)
 
     all_threads_text = "\n".join(threads_text_parts)
-    prompt_text = GEMINI_PROMPT.replace("{threads}", all_threads_text)
+    current_rules = _load_current_rules()
+    prompt_text = GEMINI_PROMPT_TEMPLATE.format(
+        threads=all_threads_text,
+        **current_rules,
+    )
     parts.append({"text": prompt_text})
 
     for i, thread in enumerate(threads, 1):
