@@ -1,6 +1,6 @@
 {
-  "last_updated": "2026-03-10",
-  "total_cases": 40,
+  "last_updated": "2026-03-13",
+  "total_cases": 41,
   "learned_forbidden_words": {
     "환자분들에게 ~ 바랍니다": "홍보/공지성 메시지로 판단될 수 있음",
     "할인 처방가로 처방하실 수 없습니다": "할인 혜택 안내로 광고성 메시지로 판단될 수 있음",
@@ -8,7 +8,8 @@
     "화력 집중": "매출 극대화와 같은 광고성 문구로 간주될 수 있음",
     "수량 한정": "긴급성 조장 — 공진단 할인 이벤트 반려(친구톡 전환) 사례",
     "보답하고자": "혜택 제공 뉘앙스 — 공진단 할인 이벤트 사례",
-    "출시": "신규 출시 안내는 마케팅 메시지로 분류될 수 있음"
+    "출시": "신규 출시 안내는 마케팅 메시지로 분류될 수 있음",
+    "선물": "수정 전 알림톡에서 '약침 선물' 표현 사용"
   },
   "learned_magic_phrases": [
     {
@@ -30,6 +31,10 @@
     {
       "phrase": "구매해주셔서",
       "desc": "상품 구매 이력 근거 — PRO VOD 업로드 안내 승인"
+    },
+    {
+      "phrase": "보내드릴 예정입니다",
+      "desc": "약침 샘플 발송 예정 안내"
     }
   ],
   "learned_informational_keywords": [
@@ -51,7 +56,8 @@
     "공동이용신고",
     "콜드릭",
     "까스퀵",
-    "원격 대행 서비스"
+    "원격 대행 서비스",
+    "약침"
   ],
   "cases": [
     {
@@ -628,6 +634,18 @@
       "rejection_reasons": [],
       "approval_factors": [],
       "final_message_text": "[선택] DM 발송하기\n\n[새학기 총명공진단 이벤트 종료일까지 D-26]\n\n안녕하세요, 원장님.\n수멤버스 운영진입니다.\n\n새학기 총명공진단 이벤트에 참여하시는 원장님께 안내드립니다.\n\n성공적인 이벤트 운영을 위한 2026.03.11 미션이 도착했습니다!\n\n📌 오늘의 할 일\n[선택] DM 발송하기\n> dl.medistream.co.kr/aQ9BHZfJ\n\n자세한 내용은 아래 버튼을 클릭하셔서 확인해주세요.\n감사합니다.\n\n수멤버스 운영진 드림",
+      "key_phrases": []
+    },
+    {
+      "date": "2026-03-13",
+      "summary": "아세챌 2기 원장님 메텐다드 약침 사전처방 푸시",
+      "result": "승인",
+      "rejections_before_approval": 0,
+      "rejection_reasons": [],
+      "approval_factors": [
+        "'선물'을 '샘플'로 변경"
+      ],
+      "final_message_text": "[마지막 공지] 아세챌 2기 원장님, 약침 샘플 챙겨가세요! :gift:\n\n원장님, 메디스트림 스탠다드 약침 4종 샘플을 보내드릴 예정입니다.\n\n- 구성: 황련해독, 중성어혈, 죽염 1.8, 죽염 3.0 (각 10vial 1박스. 1vial/2cc)\n- 대상: 위 약침 4종 사전처방을 완료하신 원장님\n\n사전처방을 [오늘]까지 완료해 주셔야\n이번 달 내로 안전하게 배송해 드릴 수 있습니다.\n\n혹시 깜빡하셨다면 지금 바로 아래 링크에서 사전처방을 완료해 주세요!\n\n:point_right: 사전처방 링크\nhttps://market.medistream.co.kr/account/contract-prescription/pre-prescription/01JQN9EY42Z1NSEHJN1CDG85VW",
       "key_phrases": []
     }
   ]
