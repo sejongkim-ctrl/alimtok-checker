@@ -1,6 +1,6 @@
 {
-  "last_updated": "2026-03-13",
-  "total_cases": 41,
+  "last_updated": "2026-03-17",
+  "total_cases": 43,
   "learned_forbidden_words": {
     "환자분들에게 ~ 바랍니다": "홍보/공지성 메시지로 판단될 수 있음",
     "할인 처방가로 처방하실 수 없습니다": "할인 혜택 안내로 광고성 메시지로 판단될 수 있음",
@@ -35,6 +35,10 @@
     {
       "phrase": "보내드릴 예정입니다",
       "desc": "약침 샘플 발송 예정 안내"
+    },
+    {
+      "phrase": "참여하시는",
+      "desc": "이벤트 참여자 대상임을 나타내는 문구"
     }
   ],
   "learned_informational_keywords": [
@@ -57,7 +61,8 @@
     "콜드릭",
     "까스퀵",
     "원격 대행 서비스",
-    "약침"
+    "약침",
+    "샘플"
   ],
   "cases": [
     {
@@ -646,6 +651,26 @@
         "'선물'을 '샘플'로 변경"
       ],
       "final_message_text": "[마지막 공지] 아세챌 2기 원장님, 약침 샘플 챙겨가세요! :gift:\n\n원장님, 메디스트림 스탠다드 약침 4종 샘플을 보내드릴 예정입니다.\n\n- 구성: 황련해독, 중성어혈, 죽염 1.8, 죽염 3.0 (각 10vial 1박스. 1vial/2cc)\n- 대상: 위 약침 4종 사전처방을 완료하신 원장님\n\n사전처방을 [오늘]까지 완료해 주셔야\n이번 달 내로 안전하게 배송해 드릴 수 있습니다.\n\n혹시 깜빡하셨다면 지금 바로 아래 링크에서 사전처방을 완료해 주세요!\n\n:point_right: 사전처방 링크\nhttps://market.medistream.co.kr/account/contract-prescription/pre-prescription/01JQN9EY42Z1NSEHJN1CDG85VW",
+      "key_phrases": []
+    },
+    {
+      "date": "2026-03-17",
+      "summary": "새학기 이벤트 DM 발송",
+      "result": "미확정",
+      "rejections_before_approval": 0,
+      "rejection_reasons": [],
+      "approval_factors": [],
+      "final_message_text": "안녕하세요, 원장님.\n수멤버스 운영진입니다.\n\n새학기 총명공진단 이벤트에 참여하시는 원장님께 안내드립니다.\n\n성공적인 이벤트 운영을 위한 2026.03.18 미션이 도착했습니다!\n\n[필수] 3차 DM 발송하기\n자세한 내용은 아래 버튼을 클릭하셔서 확인해주세요.\n감사합니다.\n\n수멤버스 운영진 드림",
+      "key_phrases": []
+    },
+    {
+      "date": "2026-03-17",
+      "summary": "아세챌 2기 원장님 메텐다드 약침 발송일 안내",
+      "result": "승인",
+      "rejections_before_approval": 0,
+      "rejection_reasons": [],
+      "approval_factors": [],
+      "final_message_text": "안녕하세요, 원장님!\nACUREX 운영진입니다.\n\n사전처방을 완료해 주신 메디스트림 스탠다드 약침 4종 샘플 배송 일정에 대해 안내드립니다.\n\n당초 예상보다 일정이 조금 조정되어, 너그러운 양해를 부탁드립니다.\n\n• 배송 시작일: 4월 3일(금) 경 순차 발송\n• 예상 수령일: 4월 둘째 주 이내\n• 샘플 구성: 황련해독, 중성어혈, 죽염 1.8, 죽염 3.0 (각 10vial 1박스)\n\n안전하고 꼼꼼하게 포장하여 보내드리겠습니다.\n감사합니다.",
       "key_phrases": []
     }
   ]
