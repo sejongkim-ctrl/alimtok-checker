@@ -1,6 +1,6 @@
 {
-  "last_updated": "2026-03-31",
-  "total_cases": 67,
+  "last_updated": "2026-04-01",
+  "total_cases": 68,
   "learned_forbidden_words": {
     "환자분들에게 ~ 바랍니다": "홍보/공지성 메시지로 판단될 수 있음",
     "할인 처방가로 처방하실 수 없습니다": "할인 혜택 안내로 광고성 메시지로 판단될 수 있음",
@@ -956,6 +956,16 @@
         "'이벤트'로 변경"
       ],
       "final_message_text": "안녕하세요, OOO 고객님.\nOOO 이벤트가 종료될 예정입니다.\n아직 참여하지 못하셨다면, 서둘러 참여하세요!\n- 종료 일시: 2026년 4월 30일\n자세히 보기: [URL]\n문의: [전화번호]",
+      "key_phrases": []
+    },
+    {
+      "date": "2026-04-01",
+      "summary": "ACUREX 세션 탈주자 세션 마감 모집 푸시",
+      "result": "승인",
+      "rejections_before_approval": 0,
+      "rejection_reasons": [],
+      "approval_factors": [],
+      "final_message_text": "[오늘 18시 마감]\n아큐렉스 전 라인업 약침 세션\n\n임상 케이스와 실제 운영 노하우,\n그리고 라이브 세션에서만 진행되는 약침 프로모션까지!\n\n지난 세션 참여하셨다면, 이번에도 놓치지 마세요.\n\n✔ 신청자에 한해서 VOD가 제공됩니다.\n\n금일 18시 신청 마감됩니다.\n지금 신청하세요.\n\n[세션 신청하기 : dl.medistream.co.kr/Kma4PbCT]",
       "key_phrases": []
     }
   ]
