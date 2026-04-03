@@ -1,6 +1,6 @@
 {
-  "last_updated": "2026-04-02",
-  "total_cases": 69,
+  "last_updated": "2026-04-03",
+  "total_cases": 83,
   "learned_forbidden_words": {
     "환자분들에게 ~ 바랍니다": "홍보/공지성 메시지로 판단될 수 있음",
     "할인 처방가로 처방하실 수 없습니다": "할인 혜택 안내로 광고성 메시지로 판단될 수 있음",
@@ -976,6 +976,146 @@
       "rejection_reasons": [],
       "approval_factors": [],
       "final_message_text": "ACUREX #{세션명} 세션 녹화본 업로드 안내\n\n안녕하세요, 원장님.\n아큐렉스 운영진입니다.\n\nACUREX #{세션명} 세션을 신청해주셔서 감사합니다.\n\n신청하신 원장님께 세션 VOD 열람 권한을 드렸습니다.\n\n:white_check_mark: 접속 경로 : 메디스트림 > 나의 강의\n:white_check_mark: 수강 기한 : #{날짜}\n:white_check_mark: 강의 영상은 저작권 보호를 받으며, 무단 복제 및 유포 시 법적 처벌을 받을 수 있습니다.\n\n이번 세션이 원장님의 약침 진료에 큰 도움이 되셨기를 바랍니다.\n감사합니다.\n\n아큐렉스 운영진 드림",
+      "key_phrases": []
+    },
+    {
+      "date": "2026-04-03",
+      "summary": "가정의달 홍보물 오류 수정 안내 및 재배송",
+      "result": "승인",
+      "rejections_before_approval": 0,
+      "rejection_reasons": [],
+      "approval_factors": [],
+      "final_message_text": "안녕하세요, 원장님.\n수멤버스 운영진입니다.\n가정의달 홍보물 일부에 오류가 확인되어 긴급 안내드립니다.\n\n해당 홍보물의 오류 내용, 수정 조치 사항, 자료실 직접 출력 시 재배송 접수 방법을 아래 페이지에 안내해 두었습니다. 홍보물을 수령하셨거나 자료실에서 다운로드하신 원장님께서는 반드시 확인 부탁드립니다.\n\n#{url}\n\n서비스 이용에 큰 불편을 드려 진심으로 죄송합니다.\n수멤버스 원장님의 너른 양해 부탁드립니다.\n\n감사합니다.\n\n수멤버스 운영진 드림",
+      "key_phrases": []
+    },
+    {
+      "date": "2026-04-03",
+      "summary": "전직원 주간회고",
+      "result": "승인",
+      "rejections_before_approval": 0,
+      "rejection_reasons": [],
+      "approval_factors": [],
+      "final_message_text": "[26 가정의 달 이벤트 시작일까지 D-3]\n안녕하세요, 원장님.\n수멤버스 운영진입니다.\n26 가정의 달 이벤트에 참여하시는 원장님께 안내드립니다.\n오늘은 전 직원 회고 시간입니다.\n이번 주 진행 상황을 짧게 정리하고 다음 주 실행력을 높일 수 있도록 회고 미팅을 진행해주세요.\n✔ 이번 주 진행 현황: 잘 된 점 / 아쉬운 점\n✔ 다음 주 준비 과제: 각자 해야 할 일\n✔ 환자 경험 점검: 안내 멘트, 동선, 대기/응대에서 불편은 없었는지 체크\n한 팀으로 같은 방향을 보면 환자 만족과 매출은 결과로 따라옵니다.\n감사합니다.\n수멤버스 운영진 드림",
+      "key_phrases": []
+    },
+    {
+      "date": "2026-04-03",
+      "summary": "블로그/인스타그램 포스팅 1건",
+      "result": "승인",
+      "rejections_before_approval": 0,
+      "rejection_reasons": [],
+      "approval_factors": [],
+      "final_message_text": "[26 가정의 달 이벤트 시작일까지 D-3]\n안녕하세요, 원장님.\n수멤버스 운영진입니다.\n26 가정의 달 이벤트에 참여하시는 원장님께 안내드립니다.\n오늘 미션은 SNS 포스팅 1건 업로드입니다.\n아래 내용을 참고해 SNS 작성 및 게시 부탁드립니다.\n📌주제 및 제목(예시)\n>가정의 달 효도 선물 추천 시작\n>어버이날 앞두고, 진짜 효도는 건강 선물\n📌추천 키워드\n어버이날선물, 효도선물, 공진단추천, 부모님건강\n수멤버스 운영진 드림",
+      "key_phrases": []
+    },
+    {
+      "date": "2026-04-03",
+      "summary": "가정의 달 이벤트 교육세션 신청하기(2차)",
+      "result": "승인",
+      "rejections_before_approval": 0,
+      "rejection_reasons": [],
+      "approval_factors": [],
+      "final_message_text": "[26 가정의 달 이벤트 시작일까지 D-4]\n안녕하세요, 원장님.\n수멤버스 운영진입니다.\n26 가정의 달 이벤트에 참여하시는 원장님께 안내드립니다.\n성공적인 이벤트 운영을 위한 2026.04.09 미션이 도착했습니다!\n🚀오늘의 할 일\n가정의 달 이벤트 세션에 참가 신청해주세요!\n> dl.medistream.co.kr/8DIU4rXz\n*이미 신청하신 분은 하지 않으셔도 됩니다.\n자세한 내용은 아래 버튼을 클릭하셔서 확인해주세요.\n감사합니다.\n수멤버스 운영진 드림",
+      "key_phrases": []
+    },
+    {
+      "date": "2026-04-03",
+      "summary": "전 직원 이벤트 최종 점검 회의 (이벤트 기간 목표 매출 공유 및 역할 재확인)",
+      "result": "승인",
+      "rejections_before_approval": 0,
+      "rejection_reasons": [],
+      "approval_factors": [],
+      "final_message_text": "[26 가정의 달 이벤트 시작일까지 D-4]\n안녕하세요, 원장님.\n수멤버스 운영진입니다.\n26 가정의 달 이벤트에 참여하시는 원장님께 안내드립니다.\n성공적인 이벤트 운영을 위한 2026.04.09 미션이 도착했습니다!\n🚀오늘의 할 일\n이벤트 최종 점검 회의를 진행해주세요!\n이벤트 페이지 바로가기\n> dl.medistream.co.kr/njc7Ei3d\n자세한 내용은 아래 버튼을 클릭하셔서 확인해주세요.\n감사합니다.\n수멤버스 운영진 드림",
+      "key_phrases": []
+    },
+    {
+      "date": "2026-04-03",
+      "summary": "VIP환자 대상 해피콜 진행 알림톡",
+      "result": "보류",
+      "rejections_before_approval": 0,
+      "rejection_reasons": [],
+      "approval_factors": [],
+      "final_message_text": "수 MEMBERS\n알림톡 도착\n수 MEMBERS\n🔔 VIP환자 대상 해피콜 진행하기\n[26 가정의 달 이벤트 시작일까지 D-5]\n안녕하세요, 원장님.\n수멤버스 운영진입니다.\n26 가정의 달 이벤트에 참여하시는 원장님께 안내드립니다.\n성공적인 이벤트 운영을 위한 2026.04.08 미션이 도착했습니다!\n📌오늘의 할 일\nVIP환자 대상 해피콜 진행해주세요!\n> 이벤트 페이지 바로가기\ndl.medistream.co.kr/njc7Ei3d\n자세한 내용은 아래 버튼을 클릭하셔서 확인해주세요.\n감사합니다.\n수멤버스 운영진 드림\n이벤트 페이지 보기",
+      "key_phrases": []
+    },
+    {
+      "date": "2026-04-03",
+      "summary": "공진단/경옥고 직원 시험 알림톡",
+      "result": "보류",
+      "rejections_before_approval": 0,
+      "rejection_reasons": [],
+      "approval_factors": [],
+      "final_message_text": "수 MEMBERS\n알림톡 도착\n수 MEMBERS\n🔔 가정의 달 이벤트 직원 시험 진행하기\n[26 가정의 달 이벤트 시작일까지 D-5]\n안녕하세요, 원장님.\n수멤버스 운영진입니다.\n26 가정의 달 이벤트에 참여하시는 원장님께 안내드립니다.\n성공적인 이벤트 운영을 위한 2026.04.08 미션이 도착했습니다!\n📌오늘의 할 일\n직원 시험을 진행해주세요!\n직원학습용 수 한약 시험지 보기\n> dl.medistream.co.kr/ZhNTAOwA\n자세한 내용은 아래 버튼을 클릭하셔서 확인해주세요.\n감사합니다.\n수멤버스 운영진 드림\n이벤트 페이지 보기",
+      "key_phrases": []
+    },
+    {
+      "date": "2026-04-03",
+      "summary": "지난 이벤트 복용환자 연락 알림톡",
+      "result": "보류",
+      "rejections_before_approval": 0,
+      "rejection_reasons": [],
+      "approval_factors": [],
+      "final_message_text": "알림톡 도착\n수 MEMBERS\n🔔 지난 이벤트 수 한약 처방 환자 연락하기\n[26 가정의 달 이벤트 시작일까지 D-6]\n안녕하세요, 원장님.\n수멤버스 운영진입니다.\n26 가정의 달 이벤트에 참여하시는 원장님께 안내드립니다.\n성공적인 이벤트 운영을 위한 2026.04.07 미션이 도착했습니다!\n📌오늘의 할 일\n지난 이벤트 수 한약 처방 환자에게 연락해주세요!\n> 이벤트 기간 공진단/경옥고 처방 환자 대상 경과 점검\n자세한 내용은 아래 버튼을 클릭하셔서 확인해주세요.\n감사합니다.\n수멤버스 운영진 드림\n이벤트 페이지 보기",
+      "key_phrases": []
+    },
+    {
+      "date": "2026-04-03",
+      "summary": "공진단/경옥고 직원 교육 알림톡",
+      "result": "보류",
+      "rejections_before_approval": 0,
+      "rejection_reasons": [],
+      "approval_factors": [],
+      "final_message_text": "알림톡 도착\n수 MEMBERS\n🔔 가정의 달 이벤트 직원 교육 진행하기\n[26 가정의 달 이벤트 시작일까지 D-6]\n안녕하세요, 원장님.\n수멤버스 운영진입니다.\n26 가정의 달 이벤트에 참여하시는 원장님께 안내드립니다.\n성공적인 이벤트 운영을 위한 2026.04.07 미션이 도착했습니다!\n📌오늘의 할 일\n가정의 달 이벤트 직원 교육을 진행해주세요!\n이벤트 페이지 보기\n> dl.medistream.co.kr/njc7Ei3d\n자세한 내용은 아래 버튼을 클릭하셔서 확인해주세요.\n감사합니다.\n수멤버스 운영진 드림\n이벤트 페이지 보기",
+      "key_phrases": []
+    },
+    {
+      "date": "2026-04-03",
+      "summary": "가정의 달 이벤트 교육세션 신청 알림톡",
+      "result": "보류",
+      "rejections_before_approval": 0,
+      "rejection_reasons": [],
+      "approval_factors": [],
+      "final_message_text": "수 MEMBERS\n알림톡 도착\n수 MEMBERS\n🔔 가정의 달 이벤트 세션 참가 신청하기\n[26 가정의 달 이벤트 시작일까지 D-7]\n안녕하세요, 원장님.\n수멤버스 운영진입니다.\n26 가정의 달 이벤트에 참여하시는 원장님께 안내드립니다.\n성공적인 이벤트 운영을 위한 2026.04.06 미션이 도착했습니다!\n📌오늘의 할 일\n가정의 달 이벤트 세션에 참가 신청해주세요!\n> dl.medistream.co.kr/8DIU4rXz\n자세한 내용은 아래 버튼을 클릭하셔서 확인해주세요.\n감사합니다.\n수멤버스 운영진 드림\n이벤트 페이지 보기",
+      "key_phrases": []
+    },
+    {
+      "date": "2026-04-03",
+      "summary": "수멤버스 이벤트 기간 목표 매출 및 전략 최종 계획 수립 알림톡",
+      "result": "승인",
+      "rejections_before_approval": 0,
+      "rejection_reasons": [],
+      "approval_factors": [],
+      "final_message_text": "안녕하세요, 원장님. 수멤버스 운영진입니다. 26 가정의 달 이벤트에 참여하시는 원장님 안내드립니다. 성공적인 이벤트 운영을 위한 2026.04.06 미션이 도착했습니다! 📌오늘의 할 일 이벤트 기간 목표 매출 및 전략 최종 계획을 수립해주세요! 자세한 내용은 아래 버튼을 클릭하셔서 확인해주세요. 감사합니다. 수멤버스 운영진 드림",
+      "key_phrases": []
+    },
+    {
+      "date": "2026-04-04",
+      "summary": "ACUREX 세팅 챌린지 추가 모집 친구톡 (아큐렉스 멤버스 대상)",
+      "result": "승인",
+      "rejections_before_approval": 0,
+      "rejection_reasons": [],
+      "approval_factors": [],
+      "final_message_text": "[ACUREX 세팅 챌린지 추가 모집] ACUREX 약침 세션 이후 참여 문의가 이어져 4/5(일) 자정까지 “한시적” 추가모집을 오픈합니다. ACUREX 약침, 좋은 건 알지만 세팅이 막막하신가요? 📌 효율적인 원내 약침 세팅을 도와드립니다. - 환자 설명 스크립트 - 진료 적용 루틴 - 처방 전환율을 높이는 구조 ❗ 이번 기회 놓치면 다음 기수까지 기다리셔야 합니다! 4/5(일) 자정 마감됩니다. 지금 신청하세요!",
+      "key_phrases": []
+    },
+    {
+      "date": "2026-04-04",
+      "summary": "ACUREX 세팅 챌린지 추가 모집 친구톡 (수멤버스 대상)",
+      "result": "승인",
+      "rejections_before_approval": 0,
+      "rejection_reasons": [],
+      "approval_factors": [],
+      "final_message_text": "[단 2일] ACUREX 세팅 챌린지 추가 모집 세션 이후 추가 참여 문의가 많아 4/5(일) 자정까지 마지막 추가 모집합니다. “태반약침 도입하고 싶은데 뭐부터 해야 할지 모르겠어요.” 고민되신다면, 이번 기회 놓치지 마세요. ✔ 무료 참여 ✔ 온라인 과제 수행으로 5일 완성 ✔ 데일리 알림 + 진척도 대시보드 제공 지금 신청하시고, 빠르고 효율적으로 약침 세팅하세요! ✅ ACUREX 공동이용계약을 체결한 한의원만 신청 가능합니다.",
+      "key_phrases": []
+    },
+    {
+      "date": "2026-04-03",
+      "summary": "ACUREX 세팅 챌린지 3기 선정 안내 친구톡",
+      "result": "승인",
+      "rejections_before_approval": 0,
+      "rejection_reasons": [],
+      "approval_factors": [],
+      "final_message_text": "안녕하십니까 #{성함} 원장님 ACUREX 운영진입니다. 기쁜 소식을 전해드립니다!🎉 원장님께서 치열한 경쟁을 뚫고 이번 ACUREX 세팅 챌린지 3기 멤버로 최종 선정되셨습니다. 4/6(월)부터 원장님 한의원의 성장을 위한 5일간의 뜻깊은 여정을 시작하게 되었습니다. 함께해주신 원장님들과의 시너지가 무척 기대되는데요💪 이번 챌린지의 주요 공지사항 전달과 과제 수행, 그리고 원장님들 간의 활발한 소통을 위한 카카오톡 단체 채팅방이 개설되었습니다. 아래 버튼을 클릭하여 3기 채팅방에 입장해 주시기 바랍니다. 열정적인 참여 부탁드릴게요! 잠시 후 채팅방에서 반가운 모습으로 뵙겠습니다. 감사합니다.",
       "key_phrases": []
     }
   ]
