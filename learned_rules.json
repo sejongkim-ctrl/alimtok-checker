@@ -1,6 +1,6 @@
 {
-  "last_updated": "2026-05-13",
-  "total_cases": 112,
+  "last_updated": "2026-05-15",
+  "total_cases": 114,
   "learned_forbidden_words": {
     "환자분들에게 ~ 바랍니다": "홍보/공지성 메시지로 판단될 수 있음",
     "할인 처방가로 처방하실 수 없습니다": "할인 혜택 안내로 광고성 메시지로 판단될 수 있음",
@@ -79,7 +79,9 @@
     "강력 새로고침",
     "수라챌",
     "수 라이징 챌린지",
-    "바이알 색상 변경"
+    "바이알 색상 변경",
+    "미백약침",
+    "생맥산 수"
   ],
   "cases": [
     {
@@ -1449,6 +1451,26 @@
       "key_phrases": [
         "ACUREX 태반약침과 자하거 수 약침을 처방하시는 원장님께 안내드립니다."
       ]
+    },
+    {
+      "date": "2026-05-15",
+      "summary": "ACUREX 미백약침 세션 참여 독려 친구톡",
+      "result": "승인",
+      "rejections_before_approval": 0,
+      "rejection_reasons": [],
+      "approval_factors": [],
+      "final_message_text": "한의원만의 스킨부스터가 탄생합니다.\n\n#{성함} 원장님! 미백, 콜라겐, 항노화 임상 근거를 담은 한의원만의 스킨부스터 \"ACUREX 미백약침\"을 새롭게 선보입니다.\n\n무료 세션 지금 신청하세요!\n\n다음주 5/20(수) ACUREX 신제품 미백약침 무료 세션이 진행될 예정입니다:blush:\n\n:white_check_mark: 미백약침의 성분과 효능\n:white_check_mark: 시술 가이드와 시연 연상\n:white_check_mark: 시술 사례 및 결과 공유\n:white_check_mark: 진료 세팅부터 주의사항까지\n\n생맥산 수를 기반한 약침으로, 세션에서 ‘생맥산 수’도 함께 소개됩니다.\n\n`무료 세션 신청하기`\n`미백약침 아티클 보러가기`",
+      "key_phrases": []
+    },
+    {
+      "date": "2026-05-15",
+      "summary": "수멤버스 생맥산 세션 참여 독려 친구톡",
+      "result": "승인",
+      "rejections_before_approval": 0,
+      "rejection_reasons": [],
+      "approval_factors": [],
+      "final_message_text": "기다리셨던 수 여름 한약 라인업이 완성됩니다.\n\n#{성함} 원장님! 조선 왕실에서 여름 처방으로 가장 많이 기록된 생맥산 수가 새롭게 출시됩니다.\n\n오는 5/20(수), 수 브랜드 신제품 생맥산과 ACUREX 신제품 미백약침 무료 세션이 진행될 예정입니다:blush:\n\n:white_check_mark: 여름철 기력 저하 및 열사병 관리\n:white_check_mark: 심혈관 기능 및 회복 케어\n:white_check_mark: 피부 미세순환, 미백, 콜라겐 관련 임상 포인트\n:white_check_mark: 환자 상담 멘트부터 마케팅 활용 방향까지\n\n같은 처방으로 만든 \"ACUREX 미백약침\"도 함께 소개됩니다.\n\n`무료 세션 신청하기`\n`생맥산 아티클 보러가기`",
+      "key_phrases": []
     }
   ]
 }
